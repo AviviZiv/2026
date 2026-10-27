@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מפת שיעורי הצבעה ברשויות</title>
+    <title>מדד שיעורי הצבעה ברשויות</title>
     
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -21,20 +21,16 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* מפה על 100% מסך מלא ללא שוליים */
         #map {
             position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            inset: 0;
             width: 100%;
             height: 100%;
             z-index: 1;
             background: #0b1120;
         }
 
-        /* סרגל ווידג'ט צף למעלה (במקום Header) */
+        /* סרגל עליון צף */
         .floating-top-bar {
             position: absolute;
             top: 14px;
@@ -42,35 +38,26 @@
             z-index: 1000;
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: rgba(15, 23, 42, 0.88);
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.9);
             backdrop-filter: blur(10px);
-            padding: 6px 14px;
+            padding: 7px 16px;
             border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.14);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
             color: #f8fafc;
-        }
-
-        .floating-title {
-            font-size: 0.95rem;
-            font-weight: 700;
-            letter-spacing: -0.2px;
-            color: #ffffff;
-            padding-left: 10px;
-            border-left: 1px solid rgba(255, 255, 255, 0.15);
         }
 
         .stat-badge {
             display: flex;
             align-items: baseline;
             gap: 5px;
-            font-size: 0.8rem;
+            font-size: 0.82rem;
             color: #94a3b8;
         }
 
         .stat-badge strong {
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             color: #38bdf8;
             font-weight: 800;
         }
@@ -85,7 +72,6 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
         }
 
         .btn-refresh:hover {
@@ -99,93 +85,173 @@
             font-family: monospace;
         }
 
-        /* תיבת חיפוש ורשימה צפה (סגנון Google Maps) */
-        .search-container {
+        /* פאנל טבלת היישובים הצף */
+        .table-panel {
             position: absolute;
             top: 70px;
             right: 14px;
-            z-index: 1000;
-            width: 310px;
+            width: 360px;
             max-width: calc(100vw - 28px);
+            height: calc(100vh - 150px);
+            max-height: 650px;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
 
-        .search-input-box {
-            position: relative;
-            width: 100%;
+        .table-panel.collapsed {
+            transform: translateX(110%);
+            opacity: 0;
+            pointer-events: none;
         }
 
-        .search-input {
-            width: 100%;
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 11px 16px;
-            border-radius: 14px;
+        .panel-header {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .panel-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 0.95rem;
+            font-weight: 700;
             color: #ffffff;
-            font-size: 0.88rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        .search-box {
+            width: 100%;
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 0.85rem;
             outline: none;
             box-sizing: border-box;
         }
 
-        .search-input:focus {
+        .search-box:focus {
             border-color: #38bdf8;
-            background: rgba(15, 23, 42, 0.98);
         }
 
-        /* תוצאות חיפוש נגללות צפות */
-        .search-dropdown {
-            margin-top: 6px;
-            max-height: 50vh;
+        /* כותרות העמודות בטבלה */
+        .table-cols-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 7px 14px;
+            background: rgba(30, 41, 59, 0.5);
+            font-size: 0.72rem;
+            color: #94a3b8;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            font-weight: 600;
+        }
+
+        .col-left {
+            display: flex;
+            gap: 16px;
+            text-align: left;
+        }
+
+        /* רשימת היישובים הנגללת */
+        .table-body {
+            flex: 1;
             overflow-y: auto;
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-            display: none;
+            padding: 4px 6px;
         }
 
-        .city-row {
-            padding: 9px 14px;
+        .table-row {
+            padding: 8px 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-radius: 8px;
             cursor: pointer;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
             transition: background 0.15s;
         }
 
-        .city-row:last-child {
-            border-bottom: none;
+        .table-row:hover {
+            background: rgba(56, 189, 248, 0.14);
         }
 
-        .city-row:hover {
-            background: rgba(56, 189, 248, 0.12);
-        }
-
-        .city-name {
+        .row-city-name {
             font-weight: 600;
             font-size: 0.86rem;
-            color: #f1f5f9;
+            color: #f8fafc;
         }
 
-        .city-sub {
-            font-size: 0.7rem;
-            color: #94a3b8;
+        .row-metrics {
+            display: flex;
+            align-items: center;
+            gap: 14px;
         }
 
-        .city-badge {
+        /* אחוז ההצבעה בפועל */
+        .row-turnout {
             font-weight: 700;
-            font-size: 0.78rem;
+            font-size: 0.82rem;
+            color: #f1f5f9;
+            min-width: 44px;
+            text-align: left;
+        }
+
+        /* הסטייה באותה שורה בדיוק עם + או - */
+        .row-diff {
+            font-weight: 700;
+            font-size: 0.82rem;
+            min-width: 58px;
+            text-align: left;
             padding: 2px 7px;
             border-radius: 6px;
-            color: #ffffff;
         }
 
-        /* מקרא צף אלגנטי בפינה התחתונה */
+        .row-diff.positive {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .row-diff.negative {
+            color: #93c5fd;
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        /* כפתור פתיחה/סגירה צף לרשימה */
+        .btn-toggle-table {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.9);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* מקרא צף אלגנטי */
         .legend-card {
-            background: rgba(15, 23, 42, 0.88) !important;
+            background: rgba(15, 23, 42, 0.9) !important;
             backdrop-filter: blur(8px);
             padding: 8px 12px;
             border-radius: 12px;
@@ -193,7 +259,7 @@
             color: #f8fafc;
             font-size: 0.72rem;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            min-width: 210px;
+            min-width: 200px;
         }
 
         .legend-bar {
@@ -211,7 +277,6 @@
             color: #94a3b8;
         }
 
-        /* פופאפ במפה */
         .leaflet-popup-content-wrapper {
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(10px);
@@ -220,34 +285,29 @@
             border-radius: 12px;
             direction: rtl;
             text-align: right;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
         }
         .leaflet-popup-tip {
             background: #0f172a;
         }
 
-        /* התאמה למסכי טלפון */
         @media (max-width: 650px) {
             .floating-top-bar {
                 top: 8px;
                 right: 8px;
-                left: 8px;
-                justify-content: space-between;
+                gap: 8px;
                 padding: 6px 12px;
             }
-            .floating-title {
-                display: none; /* חוסך מקום בנייד */
+            .btn-toggle-table {
+                top: 8px;
+                left: 8px;
+                padding: 6px 10px;
             }
-            .search-container {
-                top: 54px;
+            .table-panel {
+                top: 55px;
                 right: 8px;
                 left: 8px;
                 width: auto;
-            }
-            .legend-card {
-                min-width: 170px;
-                font-size: 0.66rem;
-                padding: 6px 10px;
+                height: calc(100vh - 120px);
             }
         }
     </style>
@@ -256,11 +316,13 @@
 
     <div id="map"></div>
 
-    <!-- בר נתונים צף עליון (ללא Header) -->
+    <!-- כפתור פתיחה/סגירה צף לטבלה -->
+    <button class="btn-toggle-table" id="toggleTableBtn">📋 טבלת יישובים</button>
+
+    <!-- בר נתונים צף עליון -->
     <div class="floating-top-bar">
-        <div class="floating-title">מדד הצבעה יחסי</div>
         <div class="stat-badge">
-            <span>ארצי:</span>
+            <span>ממוצע ארצי:</span>
             <strong id="disp-avg">--%</strong>
         </div>
         <div class="stat-badge">
@@ -271,15 +333,29 @@
         <span class="time-tag" id="lastUpdateDisplay">--:--:--</span>
     </div>
 
-    <!-- תיבת חיפוש צפה ונקייה -->
-    <div class="search-container">
-        <div class="search-input-box">
-            <input type="text" id="searchInput" class="search-input" placeholder="🔍 חיפוש רשות או יישוב..." />
+    <!-- טבלת יישובים מורחבת וצפה -->
+    <div class="table-panel" id="tablePanel">
+        <div class="panel-header">
+            <div class="panel-title-row">
+                <span class="panel-title">נתוני הצבעה וסטייה יחסית</span>
+                <span style="font-size:0.75rem; color:#94a3b8;" id="filteredCount"></span>
+            </div>
+            <input type="text" id="searchInput" class="search-box" placeholder="🔍 חיפוש יישוב / רשות..." />
         </div>
-        <div class="search-dropdown" id="searchDropdown"></div>
+
+        <div class="table-cols-header">
+            <span>שם הרשות</span>
+            <div class="col-left">
+                <span>אחוז בפועל</span>
+                <span>סטייה מהארצי</span>
+            </div>
+        </div>
+
+        <div class="table-body" id="tableBody"></div>
     </div>
 
 <script>
+    // מאגר עשיר של עשרות רשויות מקומיות
     let authorities = [
         // צפון עליון וגליל
         { name: "קריית שמונה", lat: 33.207, lng: 35.572, eligible: 19500, voted: 9800 },
@@ -292,8 +368,6 @@
         { name: "קצרין", lat: 32.993, lng: 35.690, eligible: 6800, voted: 4250 },
         { name: "מג'דל שמס", lat: 33.268, lng: 35.772, eligible: 7800, voted: 1800 },
         { name: "בוקעאתא", lat: 33.204, lng: 35.778, eligible: 4200, voted: 950 },
-        { name: "מסעדה", lat: 33.234, lng: 35.756, eligible: 2400, voted: 600 },
-        { name: "עין קנייא", lat: 33.242, lng: 35.726, eligible: 1600, voted: 420 },
         { name: "נהריה", lat: 33.003, lng: 35.094, eligible: 54000, voted: 27000 },
         { name: "מעלות-תרשיחא", lat: 33.016, lng: 35.275, eligible: 18000, voted: 9900 },
         { name: "כפר ורדים", lat: 32.997, lng: 35.271, eligible: 4900, voted: 3450 },
@@ -321,7 +395,7 @@
         { name: "שפרעם", lat: 32.805, lng: 35.169, eligible: 32000, voted: 20800 },
         { name: "טמרה", lat: 32.853, lng: 35.197, eligible: 24000, voted: 16800 },
 
-        // חיפה, קריות וחוף הכרמל
+        // חיפה והכרמל
         { name: "חיפה", lat: 32.794, lng: 34.990, eligible: 262000, voted: 118000 },
         { name: "קריית אתא", lat: 32.804, lng: 35.105, eligible: 52000, voted: 25000 },
         { name: "קריית מוצקין", lat: 32.834, lng: 35.077, eligible: 41000, voted: 22500 },
@@ -330,7 +404,6 @@
         { name: "נשר", lat: 32.772, lng: 35.037, eligible: 20000, voted: 10400 },
         { name: "טירת כרמל", lat: 32.760, lng: 34.970, eligible: 25000, voted: 13750 },
         { name: "דלית אל-כרמל", lat: 32.693, lng: 35.047, eligible: 13000, voted: 9100 },
-        { name: "עספיא", lat: 32.716, lng: 35.059, eligible: 9200, voted: 6900 },
         { name: "קריית טבעון", lat: 32.713, lng: 35.127, eligible: 14800, voted: 9600 },
         { name: "זכרון יעקב", lat: 32.571, lng: 34.952, eligible: 18200, voted: 11800 },
         { name: "בנימינה - גבעת עדה", lat: 32.518, lng: 34.950, eligible: 12000, voted: 7900 },
@@ -445,7 +518,6 @@
             zoomControl: false
         });
 
-        // פקדי זום בפינה ימנית תחתונה
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -455,7 +527,6 @@
 
         markersLayer = L.layerGroup().addTo(map);
 
-        // מקרא צף
         const legend = L.control({ position: 'bottomleft' });
         legend.onAdd = function() {
             const div = L.DomUtil.create('div', 'legend-card');
@@ -515,7 +586,7 @@
                     <h3 style="margin-bottom: 4px; font-size: 1rem;">${city.name}</h3>
                     <div>שיעור הצבעה: <b>${turnout.toFixed(1)}%</b></div>
                     <div style="color: ${diff >= 0 ? '#ef4444' : '#38bdf8'}; font-weight: bold; margin-top:2px;">
-                        ביחס לממוצע: ${diffText}
+                        סטייה מהממוצע: ${diffText}
                     </div>
                     <div style="color: #94a3b8; font-size: 0.7rem; margin-top: 5px;">
                         בעלי זכות: ${city.eligible.toLocaleString('he-IL')}<br/>
@@ -527,63 +598,61 @@
             markersLayer.addLayer(circle);
             markersMap.set(city.name, { marker: circle, data: city, turnout, diff, color });
         });
+
+        renderTable();
     }
 
-    // מנגנון חיפוש צף אלגנטי
-    const searchInput = document.getElementById('searchInput');
-    const dropdown = document.getElementById('searchDropdown');
+    // מילוי טבלת היישובים
+    function renderTable() {
+        const query = document.getElementById('searchInput').value.trim();
+        const body = document.getElementById('tableBody');
+        body.innerHTML = '';
 
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.trim();
-        if (!query) {
-            dropdown.style.display = 'none';
-            return;
-        }
+        // מיון הרשויות מהגבוה לנמוך לפי אחוז ההצבעה
+        const sorted = [...authorities].sort((a,b) => (b.voted / b.eligible) - (a.voted / a.eligible));
+        const filtered = sorted.filter(c => c.name.includes(query));
 
-        const filtered = authorities.filter(c => c.name.includes(query));
-        if (filtered.length === 0) {
-            dropdown.style.display = 'none';
-            return;
-        }
+        document.getElementById('filteredCount').innerText = `${filtered.length} רשויות`;
 
-        dropdown.innerHTML = '';
-        dropdown.style.display = 'block';
-
-        filtered.slice(0, 10).forEach(city => {
+        filtered.forEach(city => {
             const item = markersMap.get(city.name);
-            const diffSign = item.diff >= 0 ? '+' : '';
+            const isPos = item.diff >= 0;
+            const diffSign = isPos ? '+' : '';
+            const diffClass = isPos ? 'positive' : 'negative';
 
             const row = document.createElement('div');
-            row.className = 'city-row';
+            row.className = 'table-row';
             row.innerHTML = `
-                <div>
-                    <div class="city-name">${city.name}</div>
-                    <div class="city-sub">${diffSign}${item.diff.toFixed(1)}% מהארצי</div>
-                </div>
-                <div class="city-badge" style="background-color: ${item.color};">
-                    ${item.turnout.toFixed(1)}%
+                <span class="row-city-name">${city.name}</span>
+                <div class="row-metrics">
+                    <span class="row-turnout">${item.turnout.toFixed(1)}%</span>
+                    <span class="row-diff ${diffClass}">${diffSign}${item.diff.toFixed(1)}%</span>
                 </div>
             `;
 
             row.onclick = () => {
-                dropdown.style.display = 'none';
-                searchInput.value = city.name;
-                map.flyTo([city.lat, city.lng], 12, { duration: 1 });
+                map.flyTo([city.lat, city.lng], 12, { duration: 1.2 });
                 item.marker.openPopup();
+                // במסכים קטנים נסגור את הטבלה כדי לראות את המפה
+                if (window.innerWidth <= 650) {
+                    document.getElementById('tablePanel').classList.add('collapsed');
+                }
             };
 
-            dropdown.appendChild(row);
+            body.appendChild(row);
         });
+    }
+
+    // חיפוש בטבלה
+    document.getElementById('searchInput').addEventListener('input', renderTable);
+
+    // פתיחה וסגירה של טבלת היישובים
+    document.getElementById('toggleTableBtn').addEventListener('click', () => {
+        const panel = document.getElementById('tablePanel');
+        panel.classList.toggle('collapsed');
     });
 
-    // סגירת החיפוש בלחיצה על המפה
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.search-container')) {
-            dropdown.style.display = 'none';
-        }
-    });
-
-    // כפתור רענן
+    // כפתור רענן נתונים
     document.getElementById('refreshBtn').addEventListener('click', () => {
         const btn = document.getElementById('refreshBtn');
         btn.innerText = 'מרענן...';
