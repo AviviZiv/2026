@@ -7,9 +7,6 @@
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    
-    <!-- טעינת התשתית הקבועה מ-data.js -->
-    <script src="data.js"></script>
 
     <style>
         html, body {
@@ -127,7 +124,6 @@
             color: #ffffff;
         }
 
-        /* סרגל הסינון: הכל / מעל 1000 / ערים בלבד */
         .filter-group {
             display: flex;
             background: rgba(30, 41, 59, 0.85);
@@ -288,9 +284,8 @@
             color: #94a3b8;
         }
 
-        /* סגנון חלונית Tooltip במעבר עכבר */
         .leaflet-tooltip {
-            background: rgba(15, 23, 42, 0.92) !important;
+            background: rgba(15, 23, 42, 0.95) !important;
             color: #f8fafc !important;
             border: 1px solid rgba(255, 255, 255, 0.15) !important;
             border-radius: 8px !important;
@@ -377,8 +372,232 @@
     </div>
 
 <script>
-    // סינון אוטומטי של יישובים שמוגדרים עם הערת hidden: true
-    const baseSettlements = (window.SETTLEMENTS_BASE || []).filter(c => !c.hidden);
+    /* =========================================================
+       תשתית נתונים קבועה של רשויות ישראל
+       כולל מספר תושבים (population) ותג הסתרה (hidden)
+       ========================================================= */
+    const ALL_SETTLEMENTS = [
+      // יישובים מוערים שמוסתרים כרגע (לשינוי: הפוך hidden ל-false)
+      { name: "תל אביב - יפו", lat: 32.085, lng: 34.782, eligible: 450000, population: 470000, isCity: true, hidden: true },
+      { name: "רמת גן", lat: 32.068, lng: 34.825, eligible: 145000, population: 175000, isCity: true, hidden: true },
+      { name: "רחובות", lat: 31.893, lng: 34.811, eligible: 125000, population: 150000, isCity: true, hidden: true },
+
+      // ירושלים ויהודה ושומרון
+      { name: "קריית יערים (טלז-סטון)", lat: 31.806, lng: 35.129, eligible: 3800, population: 6500, isCity: false, hidden: false },
+      { name: "ירושלים", lat: 31.768, lng: 35.214, eligible: 685000, population: 980000, isCity: true, hidden: false },
+      { name: "בית שמש", lat: 31.747, lng: 34.988, eligible: 92000, population: 160000, isCity: true, hidden: false },
+      { name: "מודיעין עילית", lat: 31.932, lng: 35.042, eligible: 46000, population: 85000, isCity: true, hidden: false },
+      { name: "ביתר עילית", lat: 31.701, lng: 35.116, eligible: 34000, population: 65000, isCity: true, hidden: false },
+      { name: "מעלה אדומים", lat: 31.792, lng: 35.297, eligible: 30000, population: 38000, isCity: true, hidden: false },
+      { name: "מבשרת ציון", lat: 31.798, lng: 35.154, eligible: 20000, population: 26000, isCity: false, hidden: false },
+      { name: "אריאל", lat: 32.106, lng: 35.184, eligible: 16500, population: 20500, isCity: true, hidden: false },
+      { name: "גבעת זאב", lat: 31.861, lng: 35.168, eligible: 14500, population: 21000, isCity: false, hidden: false },
+      { name: "אפרת", lat: 31.655, lng: 35.152, eligible: 8200, population: 13000, isCity: false, hidden: false },
+      { name: "קרני שומרון", lat: 32.164, lng: 35.097, eligible: 7000, population: 10000, isCity: false, hidden: false },
+      { name: "אורנית", lat: 32.132, lng: 35.011, eligible: 6600, population: 9200, isCity: false, hidden: false },
+      { name: "אלפי מנשה", lat: 32.174, lng: 35.020, eligible: 5900, population: 8000, isCity: false, hidden: false },
+      { name: "אבו גוש", lat: 31.807, lng: 35.109, eligible: 6300, population: 8000, isCity: false, hidden: false },
+      { name: "קריית ארבע", lat: 31.528, lng: 35.119, eligible: 5200, population: 7600, isCity: false, hidden: false },
+      { name: "קדומים", lat: 32.208, lng: 35.161, eligible: 3300, population: 4600, isCity: false, hidden: false },
+      { name: "עמנואל", lat: 32.158, lng: 35.143, eligible: 2600, population: 4700, isCity: false, hidden: false },
+      { name: "מטה בנימין (מועצה)", lat: 31.950, lng: 35.220, eligible: 48000, population: 78000, isCity: false, hidden: false },
+      { name: "מטה יהודה (מועצה)", lat: 31.750, lng: 35.000, eligible: 45000, population: 63000, isCity: false, hidden: false },
+      { name: "שומרון (מועצה)", lat: 32.180, lng: 35.200, eligible: 35000, population: 54000, isCity: false, hidden: false },
+      { name: "גוש עציון (מועצה)", lat: 31.660, lng: 35.120, eligible: 19000, population: 28000, isCity: false, hidden: false },
+      { name: "הר חברון (מועצה)", lat: 31.420, lng: 35.080, eligible: 7500, population: 11000, isCity: false, hidden: false },
+      { name: "בקעת הירדן (מועצה)", lat: 32.050, lng: 35.450, eligible: 4500, population: 6800, isCity: false, hidden: false },
+      { name: "מגילות ים המלח", lat: 31.740, lng: 35.450, eligible: 1200, population: 2200, isCity: false, hidden: false },
+
+      // גוש דן והמרכז
+      { name: "פתח תקווה", lat: 32.084, lng: 34.888, eligible: 215000, population: 257000, isCity: true, hidden: false },
+      { name: "ראשון לציון", lat: 31.973, lng: 34.793, eligible: 218000, population: 260000, isCity: true, hidden: false },
+      { name: "חולון", lat: 32.016, lng: 34.787, eligible: 165000, population: 198000, isCity: true, hidden: false },
+      { name: "בני ברק", lat: 32.085, lng: 34.835, eligible: 140000, population: 220000, isCity: true, hidden: false },
+      { name: "בת ים", lat: 32.013, lng: 34.748, eligible: 128000, population: 130000, isCity: true, hidden: false },
+      { name: "ראש העין", lat: 32.095, lng: 34.956, eligible: 56000, population: 74000, isCity: true, hidden: false },
+      { name: "גבעתיים", lat: 32.071, lng: 34.810, eligible: 51000, population: 61500, isCity: true, hidden: false },
+      { name: "קריית אונו", lat: 32.063, lng: 34.858, eligible: 34000, population: 43500, isCity: true, hidden: false },
+      { name: "אור יהודה", lat: 32.029, lng: 34.856, eligible: 31000, population: 39000, isCity: true, hidden: false },
+      { name: "יהוד-מונוסון", lat: 32.033, lng: 34.889, eligible: 27000, population: 31500, isCity: true, hidden: false },
+      { name: "אלעד", lat: 32.052, lng: 34.952, eligible: 27000, population: 50000, isCity: true, hidden: false },
+      { name: "גבעת שמואל", lat: 32.076, lng: 34.848, eligible: 20000, population: 28500, isCity: true, hidden: false },
+      { name: "גני תקווה", lat: 32.061, lng: 34.872, eligible: 16000, population: 24000, isCity: false, hidden: false },
+      { name: "אזור", lat: 32.024, lng: 34.806, eligible: 9600, population: 13500, isCity: false, hidden: false },
+      { name: "סביון", lat: 32.050, lng: 34.876, eligible: 3200, population: 4100, isCity: false, hidden: false },
+
+      // השרון והמשולש
+      { name: "נתניה", lat: 32.321, lng: 34.853, eligible: 188000, population: 235000, isCity: true, hidden: false },
+      { name: "הרצליה", lat: 32.166, lng: 34.843, eligible: 88000, population: 108000, isCity: true, hidden: false },
+      { name: "כפר סבא", lat: 32.175, lng: 34.907, eligible: 87000, population: 103000, isCity: true, hidden: false },
+      { name: "חדרה", lat: 32.434, lng: 34.919, eligible: 82000, population: 105000, isCity: true, hidden: false },
+      { name: "רעננה", lat: 32.184, lng: 34.871, eligible: 72000, population: 82000, isCity: true, hidden: false },
+      { name: "הוד השרון", lat: 32.152, lng: 34.890, eligible: 55000, population: 66000, isCity: true, hidden: false },
+      { name: "רמת השרון", lat: 32.145, lng: 34.840, eligible: 41000, population: 48500, isCity: true, hidden: false },
+      { name: "טייבה", lat: 32.266, lng: 35.011, eligible: 36000, population: 46000, isCity: true, hidden: false },
+      { name: "פרדס חנה - כרכור", lat: 32.473, lng: 34.972, eligible: 34000, population: 45000, isCity: false, hidden: false },
+      { name: "עמק חפר (מועצה)", lat: 32.380, lng: 34.900, eligible: 32000, population: 43000, isCity: false, hidden: false },
+      { name: "באקה אל-גרבייה", lat: 32.417, lng: 35.041, eligible: 23000, population: 31000, isCity: true, hidden: false },
+      { name: "חריש", lat: 32.460, lng: 35.045, eligible: 22000, population: 36000, isCity: true, hidden: false },
+      { name: "טירה", lat: 32.234, lng: 34.950, eligible: 21000, population: 28000, isCity: true, hidden: false },
+      { name: "כפר יונה", lat: 32.316, lng: 34.933, eligible: 20500, population: 30000, isCity: true, hidden: false },
+      { name: "כפר קאסם", lat: 32.113, lng: 34.974, eligible: 18000, population: 25500, isCity: true, hidden: false },
+      { name: "אור עקיבא", lat: 32.508, lng: 34.919, eligible: 16500, population: 21000, isCity: true, hidden: false },
+      { name: "קדימה-צורן", lat: 32.278, lng: 34.917, eligible: 16500, population: 23000, isCity: false, hidden: false },
+      { name: "קלנסווה", lat: 32.285, lng: 34.982, eligible: 16500, population: 24000, isCity: true, hidden: false },
+      { name: "דרום השרון (מועצה)", lat: 32.150, lng: 34.930, eligible: 24000, population: 34500, isCity: false, hidden: false },
+      { name: "בנימינה - גבעת עדה", lat: 32.518, lng: 34.950, eligible: 12000, population: 16500, isCity: false, hidden: false },
+      { name: "חוף השרון (מועצה)", lat: 32.220, lng: 34.840, eligible: 11000, population: 15500, isCity: false, hidden: false },
+      { name: "אבן יהודה", lat: 32.270, lng: 34.887, eligible: 11000, population: 14500, isCity: false, hidden: false },
+      { name: "תל מונד", lat: 32.256, lng: 34.919, eligible: 9600, population: 14000, isCity: false, hidden: false },
+      { name: "ג'ת", lat: 32.400, lng: 35.039, eligible: 8500, population: 12500, isCity: false, hidden: false },
+      { name: "ג'לג'וליה", lat: 32.153, lng: 34.952, eligible: 7200, population: 10500, isCity: false, hidden: false },
+      { name: "זמר", lat: 32.370, lng: 35.025, eligible: 5100, population: 7500, isCity: false, hidden: false },
+      { name: "כפר ברא", lat: 32.122, lng: 34.978, eligible: 2600, population: 3800, isCity: false, hidden: false },
+
+      // שפלה ודרום
+      { name: "אשדוד", lat: 31.804, lng: 34.655, eligible: 198000, population: 228000, isCity: true, hidden: false },
+      { name: "באר שבע", lat: 31.253, lng: 34.792, eligible: 178000, population: 215000, isCity: true, hidden: false },
+      { name: "אשקלון", lat: 31.669, lng: 34.574, eligible: 122000, population: 155000, isCity: true, hidden: false },
+      { name: "מודיעין-מכבים-רעות", lat: 31.890, lng: 35.010, eligible: 76000, population: 98000, isCity: true, hidden: false },
+      { name: "לוד", lat: 31.951, lng: 34.895, eligible: 66000, population: 84000, isCity: true, hidden: false },
+      { name: "רמלה", lat: 31.928, lng: 34.867, eligible: 62000, population: 78000, isCity: true, hidden: false },
+      { name: "אילת", lat: 29.558, lng: 34.952, eligible: 48000, population: 54000, isCity: true, hidden: false },
+      { name: "קריית גת", lat: 31.610, lng: 34.764, eligible: 47000, population: 66000, isCity: true, hidden: false },
+      { name: "רהט", lat: 31.392, lng: 34.754, eligible: 42000, population: 79000, isCity: true, hidden: false },
+      { name: "נס ציונה", lat: 31.930, lng: 34.800, eligible: 42000, population: 51000, isCity: true, hidden: false },
+      { name: "יבנה", lat: 31.878, lng: 34.739, eligible: 41000, population: 56000, isCity: true, hidden: false },
+      { name: "נתיבות", lat: 31.420, lng: 34.587, eligible: 33000, population: 46000, isCity: true, hidden: false },
+      { name: "דימונה", lat: 31.069, lng: 35.034, eligible: 32000, population: 37500, isCity: true, hidden: false },
+      { name: "אופקים", lat: 31.314, lng: 34.620, eligible: 28000, population: 36000, isCity: true, hidden: false },
+      { name: "שדרות", lat: 31.524, lng: 34.596, eligible: 26000, population: 33500, isCity: true, hidden: false },
+      { name: "ערד", lat: 31.261, lng: 35.214, eligible: 24000, population: 28500, isCity: true, hidden: false },
+      { name: "גדרה", lat: 31.812, lng: 34.778, eligible: 23000, population: 31000, isCity: false, hidden: false },
+      { name: "באר יעקב", lat: 31.938, lng: 34.838, eligible: 23000, population: 34000, isCity: true, hidden: false },
+      { name: "גזר (מועצה)", lat: 31.880, lng: 34.900, eligible: 21000, population: 29000, isCity: false, hidden: false },
+      { name: "קריית מלאכי", lat: 31.728, lng: 34.747, eligible: 19000, population: 25000, isCity: true, hidden: false },
+      { name: "גן יבנה", lat: 31.787, lng: 34.716, eligible: 18000, population: 25000, isCity: false, hidden: false },
+      { name: "באר טוביה (מועצה)", lat: 31.730, lng: 34.720, eligible: 18000, population: 24000, isCity: false, hidden: false },
+      { name: "שוהם", lat: 31.998, lng: 34.946, eligible: 16500, population: 22000, isCity: false, hidden: false },
+      { name: "חוף אשקלון (מועצה)", lat: 31.620, lng: 34.610, eligible: 14000, population: 20000, isCity: false, hidden: false },
+      { name: "חורה", lat: 31.298, lng: 34.935, eligible: 12000, population: 24000, isCity: false, hidden: false },
+      { name: "אשכול (מועצה)", lat: 31.240, lng: 34.420, eligible: 11500, population: 16000, isCity: false, hidden: false },
+      { name: "מזכרת בתיה", lat: 31.854, lng: 34.845, eligible: 11500, population: 16000, isCity: false, hidden: false },
+      { name: "תל שבע", lat: 31.250, lng: 34.862, eligible: 11000, population: 23000, isCity: false, hidden: false },
+      { name: "כסייפה", lat: 31.282, lng: 35.036, eligible: 10500, population: 24000, isCity: false, hidden: false },
+      { name: "מרחבים (מועצה)", lat: 31.340, lng: 34.600, eligible: 10500, population: 15000, isCity: false, hidden: false },
+      { name: "לכיש (מועצה)", lat: 31.560, lng: 34.860, eligible: 10000, population: 14000, isCity: false, hidden: false },
+      { name: "ערערה בנגב", lat: 31.164, lng: 34.986, eligible: 9500, population: 20000, isCity: false, hidden: false },
+      { name: "שפיר (מועצה)", lat: 31.680, lng: 34.720, eligible: 9500, population: 14000, isCity: false, hidden: false },
+      { name: "קריית עקרון", lat: 31.860, lng: 34.821, eligible: 9100, population: 11500, isCity: false, hidden: false },
+      { name: "בני שמעון (מועצה)", lat: 31.380, lng: 34.730, eligible: 8800, population: 12000, isCity: false, hidden: false },
+      { name: "ירוחם", lat: 30.988, lng: 34.919, eligible: 8500, population: 11200, isCity: false, hidden: false },
+      { name: "שדות נגב (מועצה)", lat: 31.430, lng: 34.560, eligible: 8000, population: 11500, isCity: false, hidden: false },
+      { name: "מיתר", lat: 31.327, lng: 34.937, eligible: 7800, population: 11000, isCity: false, hidden: false },
+      { name: "נחל שורק (מועצה)", lat: 31.790, lng: 34.840, eligible: 7500, population: 10500, isCity: false, hidden: false },
+      { name: "לקיה", lat: 31.339, lng: 34.871, eligible: 7200, population: 16000, isCity: false, hidden: false },
+      { name: "יואב (מועצה)", lat: 31.640, lng: 34.780, eligible: 7200, population: 10000, isCity: false, hidden: false },
+      { name: "שער הנגב (מועצה)", lat: 31.510, lng: 34.620, eligible: 7000, population: 9500, isCity: false, hidden: false },
+      { name: "שגב שלום", lat: 31.200, lng: 34.843, eligible: 6500, population: 13000, isCity: false, hidden: false },
+      { name: "עומר", lat: 31.264, lng: 34.846, eligible: 6400, population: 8000, isCity: false, hidden: false },
+      { name: "חבל יבנה (מועצה)", lat: 31.830, lng: 34.710, eligible: 6200, population: 7500, isCity: false, hidden: false },
+      { name: "רמת נגב (מועצה)", lat: 30.900, lng: 34.750, eligible: 6000, population: 9000, isCity: false, hidden: false },
+      { name: "בני עי\"ש", lat: 31.792, lng: 34.759, eligible: 5400, population: 7000, isCity: false, hidden: false },
+      { name: "להבים", lat: 31.376, lng: 34.821, eligible: 5200, population: 7200, isCity: false, hidden: false },
+      { name: "מצפה רמון", lat: 30.612, lng: 34.801, eligible: 4200, population: 5300, isCity: false, hidden: false },
+      { name: "חבל אילות (מועצה)", lat: 29.800, lng: 35.000, eligible: 3800, population: 5100, isCity: false, hidden: false },
+      { name: "הערבה התיכונה", lat: 30.700, lng: 35.200, eligible: 2600, population: 4000, isCity: false, hidden: false },
+      { name: "תמר (ים המלח)", lat: 31.150, lng: 35.350, eligible: 1400, population: 1600, isCity: false, hidden: false },
+
+      // חיפה, צפון וגליל
+      { name: "חיפה", lat: 32.794, lng: 34.990, eligible: 262000, population: 290000, isCity: true, hidden: false },
+      { name: "נצרת", lat: 32.699, lng: 35.303, eligible: 68000, population: 78000, isCity: true, hidden: false },
+      { name: "נהריה", lat: 33.003, lng: 35.094, eligible: 54000, population: 64000, isCity: true, hidden: false },
+      { name: "קריית אתא", lat: 32.804, lng: 35.105, eligible: 52000, population: 61000, isCity: true, hidden: false },
+      { name: "עכו", lat: 32.928, lng: 35.082, eligible: 48000, population: 52000, isCity: true, hidden: false },
+      { name: "עפולה", lat: 32.607, lng: 35.289, eligible: 46000, population: 63000, isCity: true, hidden: false },
+      { name: "כרמיאל", lat: 32.919, lng: 35.295, eligible: 43000, population: 48000, isCity: true, hidden: false },
+      { name: "אום אל-פחם", lat: 32.518, lng: 35.153, eligible: 43000, population: 58500, isCity: true, hidden: false },
+      { name: "טבריה", lat: 32.792, lng: 35.531, eligible: 42000, population: 49000, isCity: true, hidden: false },
+      { name: "קריית מוצקין", lat: 32.834, lng: 35.077, eligible: 41000, population: 50000, isCity: true, hidden: false },
+      { name: "נוף הגליל", lat: 32.706, lng: 35.334, eligible: 38000, population: 44500, isCity: true, hidden: false },
+      { name: "קריית ביאליק", lat: 32.833, lng: 35.093, eligible: 38000, population: 45000, isCity: true, hidden: false },
+      { name: "קריית ים", lat: 32.846, lng: 35.069, eligible: 36000, population: 41000, isCity: true, hidden: false },
+      { name: "שפרעם", lat: 32.805, lng: 35.169, eligible: 32000, population: 44000, isCity: true, hidden: false },
+      { name: "עמק יזרעאל (מועצה)", lat: 32.650, lng: 35.240, eligible: 31000, population: 40000, isCity: false, hidden: false },
+      { name: "חוף הכרמל (מועצה)", lat: 32.645, lng: 34.950, eligible: 26000, population: 36000, isCity: false, hidden: false },
+      { name: "צפת", lat: 32.964, lng: 35.496, eligible: 26000, population: 38500, isCity: true, hidden: false },
+      { name: "טירת כרמל", lat: 32.760, lng: 34.970, eligible: 25000, population: 31000, isCity: true, hidden: false },
+      { name: "סח'נין", lat: 32.863, lng: 35.304, eligible: 25000, population: 33500, isCity: true, hidden: false },
+      { name: "טמרה", lat: 32.853, lng: 35.197, eligible: 24000, population: 36000, isCity: true, hidden: false },
+      { name: "מגדל העמק", lat: 32.674, lng: 35.240, eligible: 21500, population: 28000, isCity: true, hidden: false },
+      { name: "משגב (מועצה)", lat: 32.871, lng: 35.250, eligible: 21000, population: 31000, isCity: false, hidden: false },
+      { name: "נשר", lat: 32.772, lng: 35.037, eligible: 20000, population: 24500, isCity: true, hidden: false },
+      { name: "קריית שמונה", lat: 33.207, lng: 35.572, eligible: 19500, population: 23000, isCity: true, hidden: false },
+      { name: "עראבה", lat: 32.854, lng: 35.337, eligible: 18000, population: 27000, isCity: true, hidden: false },
+      { name: "מעלות-תרשיחא", lat: 33.016, lng: 35.275, eligible: 18000, population: 23000, isCity: true, hidden: false },
+      { name: "זכרון יעקב", lat: 32.571, lng: 34.952, eligible: 18200, population: 24500, isCity: false, hidden: false },
+      { name: "מגאר", lat: 32.890, lng: 35.407, eligible: 17500, population: 24000, isCity: true, hidden: false },
+      { name: "כפר כנא", lat: 32.747, lng: 35.339, eligible: 16000, population: 24000, isCity: false, hidden: false },
+      { name: "בית שאן", lat: 32.497, lng: 35.498, eligible: 15500, population: 19000, isCity: true, hidden: false },
+      { name: "ערערה", lat: 32.494, lng: 35.101, eligible: 15500, population: 26000, isCity: false, hidden: false },
+      { name: "קריית טבעון", lat: 32.713, lng: 35.127, eligible: 14800, population: 19000, isCity: false, hidden: false },
+      { name: "ג'דיידה-מכר", lat: 32.928, lng: 35.143, eligible: 14500, population: 21500, isCity: false, hidden: false },
+      { name: "יפיע", lat: 32.684, lng: 35.275, eligible: 14000, population: 20000, isCity: false, hidden: false },
+      { name: "כפר קרע", lat: 32.493, lng: 35.047, eligible: 14000, population: 20500, isCity: true, hidden: false },
+      { name: "דלית אל-כרמל", lat: 32.693, lng: 35.047, eligible: 13000, population: 18000, isCity: false, hidden: false },
+      { name: "ריינה", lat: 32.723, lng: 35.318, eligible: 12500, population: 19500, isCity: false, hidden: false },
+      { name: "ירכא", lat: 32.955, lng: 35.187, eligible: 12000, population: 18000, isCity: false, hidden: false },
+      { name: "עמק הירדן (מועצה)", lat: 32.705, lng: 35.578, eligible: 11000, population: 14500, isCity: false, hidden: false },
+      { name: "מעלה עירון", lat: 32.530, lng: 35.130, eligible: 11000, population: 16000, isCity: false, hidden: false },
+      { name: "מג'ד אל-כרום", lat: 32.921, lng: 35.210, eligible: 11000, population: 16000, isCity: false, hidden: false },
+      { name: "טורעאן", lat: 32.779, lng: 35.373, eligible: 10500, population: 15000, isCity: false, hidden: false },
+      { name: "אכסאל", lat: 32.681, lng: 35.321, eligible: 10200, population: 15500, isCity: false, hidden: false },
+      { name: "עמק המעיינות", lat: 32.483, lng: 35.520, eligible: 10200, population: 14500, isCity: false, hidden: false },
+      { name: "ג'סר א-זרקא", lat: 32.535, lng: 34.912, eligible: 9800, population: 15500, isCity: false, hidden: false },
+      { name: "אבו סנאן", lat: 32.959, lng: 35.167, eligible: 9600, population: 14500, isCity: false, hidden: false },
+      { name: "אעבלין", lat: 32.822, lng: 35.187, eligible: 9600, population: 13500, isCity: false, hidden: false },
+      { name: "כאבול", lat: 32.869, lng: 35.211, eligible: 9500, population: 14500, isCity: false, hidden: false },
+      { name: "עספיא", lat: 32.716, lng: 35.059, eligible: 9200, population: 12800, isCity: false, hidden: false },
+      { name: "בית ג'ן", lat: 32.964, lng: 35.385, eligible: 8800, population: 12500, isCity: false, hidden: false },
+      { name: "פוריידיס", lat: 32.597, lng: 34.953, eligible: 8700, population: 13800, isCity: false, hidden: false },
+      { name: "נחף", lat: 32.934, lng: 35.318, eligible: 8600, population: 13500, isCity: false, hidden: false },
+      { name: "דיר אל-אסד", lat: 32.937, lng: 35.263, eligible: 8500, population: 13000, isCity: false, hidden: false },
+      { name: "חצור הגלילית", lat: 32.981, lng: 35.545, eligible: 8200, population: 10800, isCity: false, hidden: false },
+      { name: "מג'דל שמס", lat: 33.268, lng: 35.772, eligible: 7800, population: 11500, isCity: false, hidden: false },
+      { name: "דיר חנא", lat: 32.857, lng: 35.366, eligible: 7800, population: 11000, isCity: false, hidden: false },
+      { name: "דבורייה", lat: 32.693, lng: 35.370, eligible: 7700, population: 11000, isCity: false, hidden: false },
+      { name: "כפר יאסיף", lat: 32.954, lng: 35.158, eligible: 7300, population: 10500, isCity: false, hidden: false },
+      { name: "בסמ\"ה", lat: 32.507, lng: 35.093, eligible: 7000, population: 10500, isCity: false, hidden: false },
+      { name: "שלומי", lat: 33.072, lng: 35.143, eligible: 6800, population: 9200, isCity: false, hidden: false },
+      { name: "קצרין", lat: 32.993, lng: 35.690, eligible: 6800, population: 9000, isCity: false, hidden: false },
+      { name: "ביר אל-מכסור", lat: 32.776, lng: 35.221, eligible: 6300, population: 9800, isCity: false, hidden: false },
+      { name: "כיסרא-סמיע", lat: 32.978, lng: 35.292, eligible: 6200, population: 9000, isCity: false, hidden: false },
+      { name: "בענה", lat: 32.928, lng: 35.267, eligible: 6100, population: 8600, isCity: false, hidden: false },
+      { name: "ראמה", lat: 32.939, lng: 35.367, eligible: 6100, population: 8000, isCity: false, hidden: false },
+      { name: "רמת ישי", lat: 32.709, lng: 35.176, eligible: 5900, population: 8000, isCity: false, hidden: false },
+      { name: "בסמת טבעון", lat: 32.716, lng: 35.155, eligible: 5900, population: 8200, isCity: false, hidden: false },
+      { name: "זרזיר", lat: 32.727, lng: 35.213, eligible: 5600, population: 8500, isCity: false, hidden: false },
+      { name: "יאנוח-ג'ת", lat: 32.986, lng: 35.228, eligible: 5100, population: 7000, isCity: false, hidden: false },
+      { name: "כפר ורדים", lat: 32.997, lng: 35.271, eligible: 4900, population: 5800, isCity: false, hidden: false },
+      { name: "ג'ולס", lat: 32.946, lng: 35.176, eligible: 4900, population: 6700, isCity: false, hidden: false },
+      { name: "חורפיש", lat: 33.015, lng: 35.347, eligible: 4600, population: 6600, isCity: false, hidden: false },
+      { name: "שבלי - אום אל-גנם", lat: 32.692, lng: 35.405, eligible: 4300, population: 6300, isCity: false, hidden: false },
+      { name: "בוקעאתא", lat: 33.204, lng: 35.778, eligible: 4200, population: 6800, isCity: false, hidden: false },
+      { name: "כעביה-טבאש-חג'אג'רה", lat: 32.748, lng: 35.176, eligible: 4000, population: 5800, isCity: false, hidden: false },
+      { name: "סאג'ור", lat: 32.943, lng: 35.334, eligible: 3300, population: 4500, isCity: false, hidden: false },
+      { name: "יבנאל", lat: 32.704, lng: 35.503, eligible: 3200, population: 4400, isCity: false, hidden: false },
+      { name: "ראש פינה", lat: 32.971, lng: 35.539, eligible: 3100, population: 3300, isCity: false, hidden: false },
+      { name: "מעיליא", lat: 33.024, lng: 35.244, eligible: 2600, population: 3400, isCity: false, hidden: false },
+      { name: "פסוטה", lat: 33.048, lng: 35.304, eligible: 2500, population: 3250, isCity: false, hidden: false },
+      { name: "מסעדה", lat: 33.234, lng: 35.756, eligible: 2400, population: 3800, isCity: false, hidden: false },
+      { name: "מגדל", lat: 32.822, lng: 35.516, eligible: 1700, population: 2100, isCity: false, hidden: false },
+      { name: "מטולה", lat: 33.279, lng: 35.578, eligible: 1600, population: 1800, isCity: false, hidden: false },
+      { name: "עין קנייא", lat: 33.242, lng: 35.726, eligible: 1600, population: 2200, isCity: false, hidden: false },
+      { name: "יסוד המעלה", lat: 33.056, lng: 35.602, eligible: 950, population: 1900, isCity: false, hidden: false }
+    ];
+
+    // סינון להצגת רשויות שאינן מוסתרות
+    const activeSettlements = ALL_SETTLEMENTS.filter(c => !c.hidden);
 
     // שכבת נתוני הצבעה דינמית
     let dynamicVotingData = new Map();
@@ -413,7 +632,7 @@
         const now = new Date();
         const currentTimeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
-        baseSettlements.forEach(city => {
+        activeSettlements.forEach(city => {
             let existing = dynamicVotingData.get(city.name);
             if (!existing) {
                 let rate = 0.54 + (Math.random() * 0.22 - 0.11);
@@ -479,7 +698,7 @@
     }
 
     function getFilteredAuthorities() {
-        return baseSettlements.filter(c => {
+        return activeSettlements.filter(c => {
             if (currentFilter === 'above1000') return c.eligible >= 1000;
             if (currentFilter === 'cities') return c.isCity;
             return true;
@@ -533,14 +752,14 @@
             const diffText = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
             const popFormatted = (city.population || 0).toLocaleString('he-IL');
 
-            // תווית מידע צפה בעת מעבר עכבר (Hover) - כולל מספר תושבים
+            // תווית מידע צפה במעבר עכבר (Hover Tooltip) - כולל מספר תושבים
             circle.bindTooltip(`
                 <strong>${city.name}</strong><br/>
                 תושבים: <strong>${popFormatted}</strong><br/>
                 שיעור הצבעה: <strong>${turnout.toFixed(1)}%</strong>
             `, { direction: 'top', sticky: true });
 
-            // חלונית מידע מלאה בלחיצה
+            // חלונית מידע מלאה בלחיצה (Popup)
             circle.bindPopup(`
                 <div style="min-width: 165px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -609,7 +828,6 @@
         });
     }
 
-    // סינון: הכל / מעל 1000 / ערים
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -621,7 +839,6 @@
 
     document.getElementById('searchInput').addEventListener('input', renderTable);
 
-    // כפתור רענן
     document.getElementById('refreshBtn').addEventListener('click', () => {
         const btn = document.getElementById('refreshBtn');
         btn.innerText = 'מרענן...';
