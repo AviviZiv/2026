@@ -76,7 +76,7 @@ window.SETTLEMENTS_BASE = [
   // --- שפלה ודרום ---
   { name: "אשדוד", lat: 31.804, lng: 34.655, eligible: 198000, population: 228000, isCity: true, hidden: false },
   { name: "באר שבע", lat: 31.253, lng: 34.792, eligible: 178000, population: 215000, isCity: true, hidden: false },
-  { name: "רחובות", lat: 31.893, lng: 34.811, eligible: 125000, population: 150000, isCity: true, hidden: true },
+  { name: "רחובות", lat: 31.893, lng: 34.811, eligible: 125000, population: 150000, isCity: true, hidden: false },
   { name: "אשקלון", lat: 31.669, lng: 34.574, eligible: 122000, population: 155000, isCity: true, hidden: false },
   { name: "מודיעין-מכבים-רעות", lat: 31.890, lng: 35.010, eligible: 76000, population: 98000, isCity: true, hidden: false },
   { name: "לוד", lat: 31.951, lng: 34.895, eligible: 66000, population: 84000, isCity: true, hidden: false },
