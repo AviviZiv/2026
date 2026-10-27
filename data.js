@@ -27,7 +27,7 @@ window.SETTLEMENTS_BASE = [
 
   // --- גוש דן והמרכז ---
   { name: "תל אביב - יפו", lat: 32.085, lng: 34.782, eligible: 450000, population: 470000, isCity: true, hidden: true },
-  { name: "ראשון לציון", lat: 31.973, lng: 34.793, eligible: 218000, population: 260000, isCity: true, hidden: false },
+  { name: "ראשון לציון", lat: 31.973, lng: 34.793, eligible: 218000, population: 260000, isCity: true, hidden: true },
   { name: "פתח תקווה", lat: 32.084, lng: 34.888, eligible: 215000, population: 257000, isCity: true, hidden: false },
   { name: "חולון", lat: 32.016, lng: 34.787, eligible: 165000, population: 198000, isCity: true, hidden: false },
   { name: "רמת גן", lat: 32.068, lng: 34.825, eligible: 145000, population: 175000, isCity: true, hidden: false },
