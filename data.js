@@ -1,11 +1,11 @@
-[
+window.RAW_AUTHORITIES_DATA = [
   { "name": "קריית יערים (טלז-סטון)", "lat": 31.806, "lng": 35.129, "eligible": 3800, "voted": 3400, "isCity": false, "updatedAt": "15:58" },
   { "name": "בני ברק", "lat": 32.085, "lng": 34.835, "eligible": 140000, "voted": 107800, "isCity": true, "updatedAt": "15:55" },
   { "name": "אלעד", "lat": 32.052, "lng": 34.952, "eligible": 27000, "voted": 23220, "isCity": true, "updatedAt": "15:55" },
   { "name": "מודיעין עילית", "lat": 31.932, "lng": 35.042, "eligible": 46000, "voted": 39500, "isCity": true, "updatedAt": "15:55" },
   { "name": "ביתר עילית", "lat": 31.701, "lng": 35.116, "eligible": 34000, "voted": 29200, "isCity": true, "updatedAt": "15:55" },
   { "name": "ירושלים", "lat": 31.768, "lng": 35.214, "eligible": 685000, "voted": 274000, "isCity": true, "updatedAt": "15:50" },
-  { "name": "בית שמש", "lat": 31.747, "lng": 34.988, eligible: 92000, "voted": 63480, "isCity": true, "updatedAt": "15:50" },
+  { "name": "בית שמש", "lat": 31.747, "lng": 34.988, "eligible": 92000, "voted": 63480, "isCity": true, "updatedAt": "15:50" },
   { "name": "חיפה", "lat": 32.794, "lng": 34.990, "eligible": 262000, "voted": 118000, "isCity": true, "updatedAt": "15:50" },
   { "name": "פתח תקווה", "lat": 32.084, "lng": 34.888, "eligible": 215000, "voted": 116100, "isCity": true, "updatedAt": "15:50" },
   { "name": "ראשון לציון", "lat": 31.973, "lng": 34.793, "eligible": 218000, "voted": 104640, "isCity": true, "updatedAt": "15:50" },
@@ -17,7 +17,7 @@
   { "name": "אשקלון", "lat": 31.669, "lng": 34.574, "eligible": 122000, "voted": 56120, "isCity": true, "updatedAt": "15:40" },
   { "name": "הרצליה", "lat": 32.166, "lng": 34.843, "eligible": 88000, "voted": 48400, "isCity": true, "updatedAt": "15:45" },
   { "name": "כפר סבא", "lat": 32.175, "lng": 34.907, "eligible": 87000, "voted": 50460, "isCity": true, "updatedAt": "15:45" },
-  { "name": "חדרה", "lat": 32.434, lng: 34.919, "eligible": 82000, "voted": 39360, "isCity": true, "updatedAt": "15:45" },
+  { "name": "חדרה", "lat": 32.434, "lng": 34.919, "eligible": 82000, "voted": 39360, "isCity": true, "updatedAt": "15:45" },
   { "name": "מודיעין-מכבים-רעות", "lat": 31.890, "lng": 35.010, "eligible": 76000, "voted": 44080, "isCity": true, "updatedAt": "15:45" },
   { "name": "רעננה", "lat": 32.184, "lng": 34.871, "eligible": 72000, "voted": 41760, "isCity": true, "updatedAt": "15:45" },
   { "name": "נצרת", "lat": 32.699, "lng": 35.303, "eligible": 68000, "voted": 46200, "isCity": true, "updatedAt": "15:50" },
@@ -117,4 +117,4 @@
   { "name": "ראש פינה", "lat": 32.971, "lng": 35.539, "eligible": 3100, "voted": 2100, "isCity": false, "updatedAt": "15:10" },
   { "name": "מטולה", "lat": 33.279, "lng": 35.578, "eligible": 1600, "voted": 1100, "isCity": false, "updatedAt": "15:35" },
   { "name": "יסוד המעלה", "lat": 33.056, "lng": 35.602, "eligible": 950, "voted": 680, "isCity": false, "updatedAt": "15:15" }
-]
+];
