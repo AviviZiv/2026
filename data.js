@@ -47,7 +47,7 @@ window.SETTLEMENTS_BASE = [
   // --- השרון והמשולש ---
   { name: "נתניה", lat: 32.321, lng: 34.853, eligible: 188000, population: 235000, isCity: true, hidden: false },
   { name: "הרצליה", lat: 32.166, lng: 34.843, eligible: 88000, population: 108000, isCity: true, hidden: false },
-  { name: "כפר סבא", lat: 32.175, lng: 34.907, eligible: 87000, population: 103000, isCity: true, hidden: false },
+  { name: "כפר סבא", lat: 32.175, lng: 34.907, eligible: 87000, population: 103000, isCity: true, hidden: true },
   { name: "חדרה", lat: 32.434, lng: 34.919, eligible: 82000, population: 105000, isCity: true, hidden: false },
   { name: "רעננה", lat: 32.184, lng: 34.871, eligible: 72000, population: 82000, isCity: true, hidden: false },
   { name: "הוד השרון", lat: 32.152, lng: 34.890, eligible: 55000, population: 66000, isCity: true, hidden: false },
