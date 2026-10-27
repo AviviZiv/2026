@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>מדד שיעורי הצבעה ברשויות</title>
     
-    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
@@ -30,7 +29,6 @@
             background: #0b1120;
         }
 
-        /* סרגל עליון צף */
         .floating-top-bar {
             position: absolute;
             top: 14px;
@@ -85,7 +83,6 @@
             font-family: monospace;
         }
 
-        /* כפתור פתיחת טבלה */
         .btn-toggle-table {
             position: absolute;
             top: 14px;
@@ -102,7 +99,6 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         }
 
-        /* פאנל טבלת היישובים */
         .table-panel {
             position: absolute;
             top: 70px;
@@ -149,7 +145,6 @@
             color: #ffffff;
         }
 
-        /* סרגל כפתורי הסינון: הכל / מעל 1000 / ערים בלבד */
         .filter-group {
             display: flex;
             background: rgba(30, 41, 59, 0.85);
@@ -196,7 +191,6 @@
             border-color: #38bdf8;
         }
 
-        /* כותרות עמודות */
         .table-cols-header {
             display: flex;
             justify-content: space-between;
@@ -284,7 +278,6 @@
             background: rgba(59, 130, 246, 0.15);
         }
 
-        /* מקרא צף */
         .legend-card {
             background: rgba(15, 23, 42, 0.9) !important;
             backdrop-filter: blur(8px);
@@ -373,7 +366,6 @@
                 <span style="font-size:0.75rem; color:#94a3b8;" id="filteredCount"></span>
             </div>
 
-            <!-- סרגל הסינון המבוקש -->
             <div class="filter-group">
                 <button class="filter-btn active" data-filter="all">הכל</button>
                 <button class="filter-btn" data-filter="above1000">מעל 1,000 בז״ב</button>
@@ -396,18 +388,13 @@
     </div>
 
 <script>
-    // רשימת יישובים מוחרגים
     const excludedCities = ["תל אביב", "תל אביב - יפו", "תל אביב-יפו", "רמת גן", "רחובות"];
 
-    // מאגר רשויות שנטען מבחוץ
     let allAuthorities = [];
-    let currentFilter = 'all'; // 'all' | 'above1000' | 'cities'
+    let currentFilter = 'all';
     let map = null;
     let markersLayer = null;
     let markersMap = new Map();
-
-    // מקור נתונים חיצוני (GeoJSON של כל יישובי ישראל מ-Data Hub ציבורי פתוח)
-    const EXTERNAL_SETTLEMENTS_URL = "https://raw.githubusercontent.com/idoivri/israel-cities-lat-lng/master/israel-cities.json";
 
     function getColorByDiff(diff) {
         if (diff < 0) {
@@ -466,81 +453,20 @@
         };
         legend.addTo(map);
 
-        loadExternalAuthorities();
+        loadData();
     }
 
-    // משיכת כלל הרשויות ונקודות הציון ממקור חיצוני
-    async function loadExternalAuthorities() {
+    // טעינת הנתונים מקובץ data.json היושב באותו המאגר
+    async function loadData() {
         try {
-            const res = await fetch(EXTERNAL_SETTLEMENTS_URL);
+            const res = await fetch('./data.json');
             const data = await res.json();
-
-            // עיבוד הנתונים החיצוניים לפורמט אחיד
-            allAuthorities = data
-                .filter(item => !excludedCities.includes(item.name.trim()))
-                .map(item => {
-                    // אוכלוסייה / בז"ב מתוך המאגר או הערכה יחסית
-                    const pop = item.population || Math.floor(Math.random() * 20000) + 800;
-                    const eligible = Math.round(pop * 0.72); // בעלי זכות בחירה הם כ-72% מכלל התושבים
-                    
-                    // אחוז הצבעה התחלתי
-                    let turnoutRate = 0.52 + (Math.random() * 0.25 - 0.12);
-                    if (item.name.includes("קריית יערים") || item.name.includes("טלז")) turnoutRate = 0.895;
-                    if (item.name.includes("אלעד") || item.name.includes("מודיעין עילית")) turnoutRate = 0.82;
-
-                    const voted = Math.round(eligible * turnoutRate);
-
-                    return {
-                        name: item.name.trim(),
-                        lat: parseFloat(item.lat),
-                        lng: parseFloat(item.lng),
-                        eligible: eligible,
-                        voted: voted,
-                        isCity: item.type === "city" || eligible > 18000,
-                        updatedAt: "15:45"
-                    };
-                });
-
-            // וידוא נוכחות קריית יערים בראש המאגר
-            if (!allAuthorities.some(a => a.name.includes("קריית יערים"))) {
-                allAuthorities.push({
-                    name: "קריית יערים (טלז-סטון)",
-                    lat: 31.806,
-                    lng: 35.129,
-                    eligible: 3800,
-                    voted: 3400,
-                    isCity: false,
-                    updatedAt: "15:58"
-                });
-            }
-
+            allAuthorities = data.filter(c => !excludedCities.includes(c.name.trim()));
             renderData();
             updateTimestamp();
         } catch (err) {
-            console.warn("טעינה ממקור חיצוני נכשלה, טוען מאגר גיבוי מקומי...", err);
-            loadFallbackData();
+            console.error("שגיאה בטעינת data.json:", err);
         }
-    }
-
-    // גיבוי למקרה של ניתוק רשת זמני
-    function loadFallbackData() {
-        allAuthorities = [
-            { name: "קריית יערים (טלז-סטון)", lat: 31.806, lng: 35.129, eligible: 3800, voted: 3400, isCity: false, updatedAt: "15:58" },
-            { name: "בני ברק", lat: 32.085, lng: 34.835, eligible: 140000, voted: 107800, isCity: true, updatedAt: "15:55" },
-            { name: "אלעד", lat: 32.052, lng: 34.952, eligible: 27000, voted: 23220, isCity: true, updatedAt: "15:55" },
-            { name: "מודיעין עילית", lat: 31.932, lng: 35.042, eligible: 46000, voted: 39500, isCity: true, updatedAt: "15:55" },
-            { name: "ירושלים", lat: 31.768, lng: 35.214, eligible: 685000, voted: 274000, isCity: true, updatedAt: "15:50" },
-            { name: "חיפה", lat: 32.794, lng: 34.990, eligible: 262000, voted: 118000, isCity: true, updatedAt: "15:50" },
-            { name: "אשדוד", lat: 31.804, lng: 34.655, eligible: 198000, voted: 108900, isCity: true, updatedAt: "15:50" },
-            { name: "פתח תקווה", lat: 32.084, lng: 34.888, eligible: 215000, voted: 116100, isCity: true, updatedAt: "15:50" },
-            { name: "נתניה", lat: 32.321, lng: 34.853, eligible: 188000, voted: 82720, isCity: true, updatedAt: "15:50" },
-            { name: "באר שבע", lat: 31.253, lng: 34.792, eligible: 178000, voted: 78320, isCity: true, updatedAt: "15:45" },
-            { name: "מטולה", lat: 33.279, lng: 35.578, eligible: 1600, voted: 1100, isCity: false, updatedAt: "15:35" },
-            { name: "יסוד המעלה", lat: 33.056, lng: 35.602, eligible: 950, voted: 680, isCity: false, updatedAt: "15:15" },
-            { name: "אילת", lat: 29.558, lng: 34.952, eligible: 48000, voted: 19680, isCity: true, updatedAt: "15:30" }
-        ];
-        renderData();
-        updateTimestamp();
     }
 
     function getFilteredAuthorities() {
@@ -556,7 +482,6 @@
 
         const currentList = getFilteredAuthorities();
 
-        // חישוב הממוצע הארצי של הרשויות המוצגות
         const totalEligible = currentList.reduce((acc, c) => acc + c.eligible, 0);
         const totalVoted = currentList.reduce((acc, c) => acc + c.voted, 0);
         const nationalAvg = totalEligible > 0 ? (totalVoted / totalEligible) * 100 : 0;
@@ -651,7 +576,6 @@
         });
     }
 
-    // האזנה לכפתורי הסינון המשולש
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
