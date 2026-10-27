@@ -90,7 +90,7 @@
             position: absolute;
             top: 70px;
             right: 14px;
-            width: 360px;
+            width: 390px;
             max-width: calc(100vw - 28px);
             height: calc(100vh - 150px);
             max-height: 650px;
@@ -162,7 +162,8 @@
 
         .col-left {
             display: flex;
-            gap: 16px;
+            gap: 12px;
+            align-items: center;
             text-align: left;
         }
 
@@ -197,25 +198,33 @@
         .row-metrics {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 10px;
         }
 
-        /* אחוז ההצבעה בפועל */
+        /* זמן עדכון יישובי */
+        .row-time {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            font-family: monospace;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+
         .row-turnout {
             font-weight: 700;
             font-size: 0.82rem;
             color: #f1f5f9;
-            min-width: 44px;
+            min-width: 42px;
             text-align: left;
         }
 
-        /* הסטייה באותה שורה בדיוק עם + או - */
         .row-diff {
             font-weight: 700;
-            font-size: 0.82rem;
-            min-width: 58px;
+            font-size: 0.8rem;
+            min-width: 56px;
             text-align: left;
-            padding: 2px 7px;
+            padding: 2px 6px;
             border-radius: 6px;
         }
 
@@ -316,10 +325,8 @@
 
     <div id="map"></div>
 
-    <!-- כפתור פתיחה/סגירה צף לטבלה -->
     <button class="btn-toggle-table" id="toggleTableBtn">📋 טבלת יישובים</button>
 
-    <!-- בר נתונים צף עליון -->
     <div class="floating-top-bar">
         <div class="stat-badge">
             <span>ממוצע ארצי:</span>
@@ -333,7 +340,6 @@
         <span class="time-tag" id="lastUpdateDisplay">--:--:--</span>
     </div>
 
-    <!-- טבלת יישובים מורחבת וצפה -->
     <div class="table-panel" id="tablePanel">
         <div class="panel-header">
             <div class="panel-title-row">
@@ -346,8 +352,9 @@
         <div class="table-cols-header">
             <span>שם הרשות</span>
             <div class="col-left">
-                <span>אחוז בפועל</span>
-                <span>סטייה מהארצי</span>
+                <span>עדכון</span>
+                <span>אחוז</span>
+                <span>סטייה</span>
             </div>
         </div>
 
@@ -355,132 +362,133 @@
     </div>
 
 <script>
-    // מאגר עשיר של עשרות רשויות מקומיות
-    let authorities = [
+    // מאגר רשויות מקומיות (ללא תל אביב, רמת גן ורחובות) כולל שעת עדכון פרטנית לכל יישוב
+    let rawAuthorities = [
         // צפון עליון וגליל
-        { name: "קריית שמונה", lat: 33.207, lng: 35.572, eligible: 19500, voted: 9800 },
-        { name: "מטולה", lat: 33.279, lng: 35.578, eligible: 1600, voted: 1100 },
-        { name: "שלומי", lat: 33.072, lng: 35.143, eligible: 6800, voted: 4200 },
-        { name: "חצור הגלילית", lat: 32.981, lng: 35.545, eligible: 8200, voted: 4800 },
-        { name: "צפת", lat: 32.964, lng: 35.496, eligible: 26000, voted: 15600 },
-        { name: "ראש פינה", lat: 32.971, lng: 35.539, eligible: 3100, voted: 2100 },
-        { name: "יסוד המעלה", lat: 33.056, lng: 35.602, eligible: 1400, voted: 980 },
-        { name: "קצרין", lat: 32.993, lng: 35.690, eligible: 6800, voted: 4250 },
-        { name: "מג'דל שמס", lat: 33.268, lng: 35.772, eligible: 7800, voted: 1800 },
-        { name: "בוקעאתא", lat: 33.204, lng: 35.778, eligible: 4200, voted: 950 },
-        { name: "נהריה", lat: 33.003, lng: 35.094, eligible: 54000, voted: 27000 },
-        { name: "מעלות-תרשיחא", lat: 33.016, lng: 35.275, eligible: 18000, voted: 9900 },
-        { name: "כפר ורדים", lat: 32.997, lng: 35.271, eligible: 4900, voted: 3450 },
-        { name: "חורפיש", lat: 33.015, lng: 35.347, eligible: 4600, voted: 3900 },
-        { name: "בית ג'ן", lat: 32.964, lng: 35.385, eligible: 8800, voted: 7200 },
-        { name: "ראמה", lat: 32.939, lng: 35.367, eligible: 6100, voted: 4800 },
-        { name: "מגאר", lat: 32.890, lng: 35.407, eligible: 17500, voted: 13800 },
-        { name: "כרמיאל", lat: 32.919, lng: 35.295, eligible: 43000, voted: 21500 },
-        { name: "משגב (מועצה)", lat: 32.871, lng: 35.250, eligible: 21000, voted: 14700 },
-        { name: "סח'נין", lat: 32.863, lng: 35.304, eligible: 25000, voted: 17500 },
-        { name: "עראבה", lat: 32.854, lng: 35.337, eligible: 18000, voted: 14200 },
-        { name: "עכו", lat: 32.928, lng: 35.082, eligible: 48000, voted: 28300 },
-        { name: "ג'דיידה-מכר", lat: 32.928, lng: 35.143, eligible: 14500, voted: 10800 },
-        { name: "ירכא", lat: 32.955, lng: 35.187, eligible: 12000, voted: 10200 },
+        { name: "קריית שמונה", lat: 33.207, lng: 35.572, eligible: 19500, voted: 9800, updatedAt: "15:40" },
+        { name: "מטולה", lat: 33.279, lng: 35.578, eligible: 1600, voted: 1100, updatedAt: "15:35" },
+        { name: "שלומי", lat: 33.072, lng: 35.143, eligible: 6800, voted: 4200, updatedAt: "15:30" },
+        { name: "חצור הגלילית", lat: 32.981, lng: 35.545, eligible: 8200, voted: 4800, updatedAt: "15:20" },
+        { name: "צפת", lat: 32.964, lng: 35.496, eligible: 26000, voted: 15600, updatedAt: "15:45" },
+        { name: "ראש פינה", lat: 32.971, lng: 35.539, eligible: 3100, voted: 2100, updatedAt: "15:10" },
+        { name: "יסוד המעלה", lat: 33.056, lng: 35.602, eligible: 1400, voted: 980, updatedAt: "15:15" },
+        { name: "קצרין", lat: 32.993, lng: 35.690, eligible: 6800, voted: 4250, updatedAt: "15:25" },
+        { name: "מג'דל שמס", lat: 33.268, lng: 35.772, eligible: 7800, voted: 1800, updatedAt: "15:00" },
+        { name: "בוקעאתא", lat: 33.204, lng: 35.778, eligible: 4200, voted: 950, updatedAt: "15:05" },
+        { name: "נהריה", lat: 33.003, lng: 35.094, eligible: 54000, voted: 27000, updatedAt: "15:45" },
+        { name: "מעלות-תרשיחא", lat: 33.016, lng: 35.275, eligible: 18000, voted: 9900, updatedAt: "15:30" },
+        { name: "כפר ורדים", lat: 32.997, lng: 35.271, eligible: 4900, voted: 3450, updatedAt: "15:40" },
+        { name: "חורפיש", lat: 33.015, lng: 35.347, eligible: 4600, voted: 3900, updatedAt: "15:35" },
+        { name: "בית ג'ן", lat: 32.964, lng: 35.385, eligible: 8800, voted: 7200, updatedAt: "15:40" },
+        { name: "ראמה", lat: 32.939, lng: 35.367, eligible: 6100, voted: 4800, updatedAt: "15:15" },
+        { name: "מגאר", lat: 32.890, lng: 35.407, eligible: 17500, voted: 13800, updatedAt: "15:30" },
+        { name: "כרמיאל", lat: 32.919, lng: 35.295, eligible: 43000, voted: 21500, updatedAt: "15:45" },
+        { name: "משגב (מועצה)", lat: 32.871, lng: 35.250, eligible: 21000, voted: 14700, updatedAt: "15:20" },
+        { name: "סח'נין", lat: 32.863, lng: 35.304, eligible: 25000, voted: 17500, updatedAt: "15:40" },
+        { name: "עראבה", lat: 32.854, lng: 35.337, eligible: 18000, voted: 14200, updatedAt: "15:35" },
+        { name: "עכו", lat: 32.928, lng: 35.082, eligible: 48000, voted: 28300, updatedAt: "15:45" },
+        { name: "ג'דיידה-מכר", lat: 32.928, lng: 35.143, eligible: 14500, voted: 10800, updatedAt: "15:20" },
+        { name: "ירכא", lat: 32.955, lng: 35.187, eligible: 12000, voted: 10200, updatedAt: "15:40" },
 
         // בקעת בית שאן, כנרת ועמקים
-        { name: "טבריה", lat: 32.792, lng: 35.531, eligible: 42000, voted: 21400 },
-        { name: "עמק הירדן (מועצה)", lat: 32.705, lng: 35.578, eligible: 11000, voted: 7150 },
-        { name: "בית שאן", lat: 32.497, lng: 35.498, eligible: 15500, voted: 10850 },
-        { name: "עפולה", lat: 32.607, lng: 35.289, eligible: 46000, voted: 23900 },
-        { name: "עמק יזרעאל (מועצה)", lat: 32.650, lng: 35.240, eligible: 31000, voted: 20150 },
-        { name: "מגדל העמק", lat: 32.674, lng: 35.240, eligible: 21500, voted: 12900 },
-        { name: "נצרת", lat: 32.699, lng: 35.303, eligible: 68000, voted: 46200 },
-        { name: "נוף הגליל", lat: 32.706, lng: 35.334, eligible: 38000, voted: 19800 },
-        { name: "שפרעם", lat: 32.805, lng: 35.169, eligible: 32000, voted: 20800 },
-        { name: "טמרה", lat: 32.853, lng: 35.197, eligible: 24000, voted: 16800 },
+        { name: "טבריה", lat: 32.792, lng: 35.531, eligible: 42000, voted: 21400, updatedAt: "15:40" },
+        { name: "עמק הירדן (מועצה)", lat: 32.705, lng: 35.578, eligible: 11000, voted: 7150, updatedAt: "15:10" },
+        { name: "בית שאן", lat: 32.497, lng: 35.498, eligible: 15500, voted: 10850, updatedAt: "15:35" },
+        { name: "עפולה", lat: 32.607, lng: 35.289, eligible: 46000, voted: 23900, updatedAt: "15:45" },
+        { name: "עמק יזרעאל (מועצה)", lat: 32.650, lng: 35.240, eligible: 31000, voted: 20150, updatedAt: "15:30" },
+        { name: "מגדל העמק", lat: 32.674, lng: 35.240, eligible: 21500, voted: 12900, updatedAt: "15:25" },
+        { name: "נצרת", lat: 32.699, lng: 35.303, eligible: 68000, voted: 46200, updatedAt: "15:50" },
+        { name: "נוף הגליל", lat: 32.706, lng: 35.334, eligible: 38000, voted: 19800, updatedAt: "15:35" },
+        { name: "שפרעם", lat: 32.805, lng: 35.169, eligible: 32000, voted: 20800, updatedAt: "15:30" },
+        { name: "טמרה", lat: 32.853, lng: 35.197, eligible: 24000, voted: 16800, updatedAt: "15:40" },
 
         // חיפה והכרמל
-        { name: "חיפה", lat: 32.794, lng: 34.990, eligible: 262000, voted: 118000 },
-        { name: "קריית אתא", lat: 32.804, lng: 35.105, eligible: 52000, voted: 25000 },
-        { name: "קריית מוצקין", lat: 32.834, lng: 35.077, eligible: 41000, voted: 22500 },
-        { name: "קריית ביאליק", lat: 32.833, lng: 35.093, eligible: 38000, voted: 19700 },
-        { name: "קריית ים", lat: 32.846, lng: 35.069, eligible: 36000, voted: 16900 },
-        { name: "נשר", lat: 32.772, lng: 35.037, eligible: 20000, voted: 10400 },
-        { name: "טירת כרמל", lat: 32.760, lng: 34.970, eligible: 25000, voted: 13750 },
-        { name: "דלית אל-כרמל", lat: 32.693, lng: 35.047, eligible: 13000, voted: 9100 },
-        { name: "קריית טבעון", lat: 32.713, lng: 35.127, eligible: 14800, voted: 9600 },
-        { name: "זכרון יעקב", lat: 32.571, lng: 34.952, eligible: 18200, voted: 11800 },
-        { name: "בנימינה - גבעת עדה", lat: 32.518, lng: 34.950, eligible: 12000, voted: 7900 },
-        { name: "פרדס חנה - כרכור", lat: 32.473, lng: 34.972, eligible: 34000, voted: 18700 },
-        { name: "חדרה", lat: 32.434, lng: 34.919, eligible: 82000, voted: 39360 },
-        { name: "אור עקיבא", lat: 32.508, lng: 34.919, eligible: 16500, voted: 10400 },
-        { name: "חריש", lat: 32.460, lng: 35.045, eligible: 22000, voted: 13200 },
-        { name: "באקה אל-גרבייה", lat: 32.417, lng: 35.041, eligible: 23000, voted: 15410 },
-        { name: "אום אל-פחם", lat: 32.518, lng: 35.153, eligible: 43000, voted: 27520 },
+        { name: "חיפה", lat: 32.794, lng: 34.990, eligible: 262000, voted: 118000, updatedAt: "15:50" },
+        { name: "קריית אתא", lat: 32.804, lng: 35.105, eligible: 52000, voted: 25000, updatedAt: "15:35" },
+        { name: "קריית מוצקין", lat: 32.834, lng: 35.077, eligible: 41000, voted: 22500, updatedAt: "15:40" },
+        { name: "קריית ביאליק", lat: 32.833, lng: 35.093, eligible: 38000, voted: 19700, updatedAt: "15:35" },
+        { name: "קריית ים", lat: 32.846, lng: 35.069, eligible: 36000, voted: 16900, updatedAt: "15:30" },
+        { name: "נשר", lat: 32.772, lng: 35.037, eligible: 20000, voted: 10400, updatedAt: "15:20" },
+        { name: "טירת כרמל", lat: 32.760, lng: 34.970, eligible: 25000, voted: 13750, updatedAt: "15:30" },
+        { name: "דלית אל-כרמל", lat: 32.693, lng: 35.047, eligible: 13000, voted: 9100, updatedAt: "15:45" },
+        { name: "קריית טבעון", lat: 32.713, lng: 35.127, eligible: 14800, voted: 9600, updatedAt: "15:25" },
+        { name: "זכרון יעקב", lat: 32.571, lng: 34.952, eligible: 18200, voted: 11800, updatedAt: "15:35" },
+        { name: "בנימינה - גבעת עדה", lat: 32.518, lng: 34.950, eligible: 12000, voted: 7900, updatedAt: "15:20" },
+        { name: "פרדס חנה - כרכור", lat: 32.473, lng: 34.972, eligible: 34000, voted: 18700, updatedAt: "15:40" },
+        { name: "חדרה", lat: 32.434, lng: 34.919, eligible: 82000, voted: 39360, updatedAt: "15:45" },
+        { name: "אור עקיבא", lat: 32.508, lng: 34.919, eligible: 16500, voted: 10400, updatedAt: "15:30" },
+        { name: "חריש", lat: 32.460, lng: 35.045, eligible: 22000, voted: 13200, updatedAt: "15:35" },
+        { name: "באקה אל-גרבייה", lat: 32.417, lng: 35.041, eligible: 23000, voted: 15410, updatedAt: "15:30" },
+        { name: "אום אל-פחם", lat: 32.518, lng: 35.153, eligible: 43000, voted: 27520, updatedAt: "15:45" },
 
         // השרון
-        { name: "נתניה", lat: 32.321, lng: 34.853, eligible: 188000, voted: 82720 },
-        { name: "עמק חפר (מועצה)", lat: 32.380, lng: 34.900, eligible: 32000, voted: 20800 },
-        { name: "כפר יונה", lat: 32.316, lng: 34.933, eligible: 20500, voted: 12300 },
-        { name: "אבן יהודה", lat: 32.270, lng: 34.887, eligible: 11000, voted: 7700 },
-        { name: "קדימה-צורן", lat: 32.278, lng: 34.917, eligible: 16500, voted: 10550 },
-        { name: "טייבה", lat: 32.266, lng: 35.011, eligible: 36000, voted: 25200 },
-        { name: "טירה", lat: 32.234, lng: 34.950, eligible: 21000, voted: 14700 },
-        { name: "כפר סבא", lat: 32.175, lng: 34.907, eligible: 87000, voted: 50460 },
-        { name: "רעננה", lat: 32.184, lng: 34.871, eligible: 72000, voted: 41760 },
-        { name: "הרצליה", lat: 32.166, lng: 34.843, eligible: 88000, voted: 48400 },
-        { name: "הוד השרון", lat: 32.152, lng: 34.890, eligible: 55000, voted: 31900 },
-        { name: "רמת השרון", lat: 32.145, lng: 34.840, eligible: 41000, voted: 24600 },
-        { name: "כפר קאסם", lat: 32.113, lng: 34.974, eligible: 18000, voted: 14900 },
+        { name: "נתניה", lat: 32.321, lng: 34.853, eligible: 188000, voted: 82720, updatedAt: "15:50" },
+        { name: "עמק חפר (מועצה)", lat: 32.380, lng: 34.900, eligible: 32000, voted: 20800, updatedAt: "15:20" },
+        { name: "כפר יונה", lat: 32.316, lng: 34.933, eligible: 20500, voted: 12300, updatedAt: "15:30" },
+        { name: "אבן יהודה", lat: 32.270, lng: 34.887, eligible: 11000, voted: 7700, updatedAt: "15:25" },
+        { name: "קדימה-צורן", lat: 32.278, lng: 34.917, eligible: 16500, voted: 10550, updatedAt: "15:30" },
+        { name: "טייבה", lat: 32.266, lng: 35.011, eligible: 36000, voted: 25200, updatedAt: "15:40" },
+        { name: "טירה", lat: 32.234, lng: 34.950, eligible: 21000, voted: 14700, updatedAt: "15:35" },
+        { name: "כפר סבא", lat: 32.175, lng: 34.907, eligible: 87000, voted: 50460, updatedAt: "15:45" },
+        { name: "רעננה", lat: 32.184, lng: 34.871, eligible: 72000, voted: 41760, updatedAt: "15:45" },
+        { name: "הרצליה", lat: 32.166, lng: 34.843, eligible: 88000, voted: 48400, updatedAt: "15:45" },
+        { name: "הוד השרון", lat: 32.152, lng: 34.890, eligible: 55000, voted: 31900, updatedAt: "15:40" },
+        { name: "רמת השרון", lat: 32.145, lng: 34.840, eligible: 41000, voted: 24600, updatedAt: "15:35" },
+        { name: "כפר קאסם", lat: 32.113, lng: 34.974, eligible: 18000, voted: 14900, updatedAt: "15:40" },
 
-        // גוש דן
-        { name: "תל אביב - יפו", lat: 32.085, lng: 34.782, eligible: 450000, voted: 238500 },
-        { name: "רמת גן", lat: 32.068, lng: 34.825, eligible: 145000, voted: 76850 },
-        { name: "גבעתיים", lat: 32.071, lng: 34.810, eligible: 51000, voted: 31110 },
-        { name: "בני ברק", lat: 32.085, lng: 34.835, eligible: 140000, voted: 107800 },
-        { name: "פתח תקווה", lat: 32.084, lng: 34.888, eligible: 215000, voted: 116100 },
-        { name: "חולון", lat: 32.016, lng: 34.787, eligible: 165000, voted: 69300 },
-        { name: "בת ים", lat: 32.013, lng: 34.748, eligible: 128000, voted: 44800 },
-        { name: "ראשון לציון", lat: 31.973, lng: 34.793, eligible: 218000, voted: 104640 },
-        { name: "קריית אונו", lat: 32.063, lng: 34.858, eligible: 34000, voted: 20400 },
-        { name: "גבעת שמואל", lat: 32.076, lng: 34.848, eligible: 20000, voted: 13400 },
-        { name: "אור יהודה", lat: 32.029, lng: 34.856, eligible: 31000, voted: 17050 },
-        { name: "יהוד-מונוסון", lat: 32.033, lng: 34.889, eligible: 27000, voted: 14850 },
-        { name: "ראש העין", lat: 32.095, lng: 34.956, eligible: 56000, voted: 35280 },
-        { name: "אלעד", lat: 32.052, lng: 34.952, eligible: 27000, voted: 23220 },
+        // גוש דן (ללא תל אביב ורמת גן)
+        { name: "גבעתיים", lat: 32.071, lng: 34.810, eligible: 51000, voted: 31110, updatedAt: "15:45" },
+        { name: "בני ברק", lat: 32.085, lng: 34.835, eligible: 140000, voted: 107800, updatedAt: "15:55" },
+        { name: "פתח תקווה", lat: 32.084, lng: 34.888, eligible: 215000, voted: 116100, updatedAt: "15:50" },
+        { name: "חולון", lat: 32.016, lng: 34.787, eligible: 165000, voted: 69300, updatedAt: "15:45" },
+        { name: "בת ים", lat: 32.013, lng: 34.748, eligible: 128000, voted: 44800, updatedAt: "15:40" },
+        { name: "ראשון לציון", lat: 31.973, lng: 34.793, eligible: 218000, voted: 104640, updatedAt: "15:50" },
+        { name: "קריית אונו", lat: 32.063, lng: 34.858, eligible: 34000, voted: 20400, updatedAt: "15:35" },
+        { name: "גבעת שמואל", lat: 32.076, lng: 34.848, eligible: 20000, voted: 13400, updatedAt: "15:30" },
+        { name: "אור יהודה", lat: 32.029, lng: 34.856, eligible: 31000, voted: 17050, updatedAt: "15:30" },
+        { name: "יהוד-מונוסון", lat: 32.033, lng: 34.889, eligible: 27000, voted: 14850, updatedAt: "15:25" },
+        { name: "ראש העין", lat: 32.095, lng: 34.956, eligible: 56000, voted: 35280, updatedAt: "15:45" },
+        { name: "אלעד", lat: 32.052, lng: 34.952, eligible: 27000, voted: 23220, updatedAt: "15:55" },
 
-        // שפלה ודרום
-        { name: "רחובות", lat: 31.893, lng: 34.811, eligible: 125000, voted: 66250 },
-        { name: "נס ציונה", lat: 31.930, lng: 34.800, eligible: 42000, voted: 25620 },
-        { name: "רמלה", lat: 31.928, lng: 34.867, eligible: 62000, voted: 31000 },
-        { name: "לוד", lat: 31.951, lng: 34.895, eligible: 66000, voted: 33660 },
-        { name: "באר יעקב", lat: 31.938, lng: 34.838, eligible: 23000, voted: 14200 },
-        { name: "מודיעין-מכבים-רעות", lat: 31.890, lng: 35.010, eligible: 76000, voted: 44080 },
-        { name: "שוהם", lat: 31.998, lng: 34.946, eligible: 16500, voted: 11500 },
-        { name: "יבנה", lat: 31.878, lng: 34.739, eligible: 41000, voted: 24600 },
-        { name: "גדרה", lat: 31.812, lng: 34.778, eligible: 23000, voted: 15400 },
-        { name: "אשדוד", lat: 31.804, lng: 34.655, eligible: 198000, voted: 108900 },
-        { name: "אשקלון", lat: 31.669, lng: 34.574, eligible: 122000, voted: 56120 },
-        { name: "קריית גת", lat: 31.610, lng: 34.764, eligible: 47000, voted: 25850 },
-        { name: "שדרות", lat: 31.524, lng: 34.596, eligible: 26000, voted: 14560 },
-        { name: "נתיבות", lat: 31.420, lng: 34.587, eligible: 33000, voted: 22440 },
-        { name: "אופקים", lat: 31.314, lng: 34.620, eligible: 28000, voted: 16240 },
-        { name: "באר שבע", lat: 31.253, lng: 34.792, eligible: 178000, voted: 78320 },
-        { name: "רהט", lat: 31.392, lng: 34.754, eligible: 42000, voted: 28980 },
-        { name: "דימונה", lat: 31.069, lng: 35.034, eligible: 32000, voted: 17920 },
-        { name: "ערד", lat: 31.261, lng: 35.214, eligible: 24000, voted: 13200 },
-        { name: "ירוחם", lat: 30.988, lng: 34.919, eligible: 8500, voted: 5270 },
-        { name: "מצפה רמון", lat: 30.612, lng: 34.801, eligible: 4200, voted: 2520 },
-        { name: "אילת", lat: 29.558, lng: 34.952, eligible: 48000, voted: 19680 },
+        // שפלה ודרום (ללא רחובות)
+        { name: "נס ציונה", lat: 31.930, lng: 34.800, eligible: 42000, voted: 25620, updatedAt: "15:40" },
+        { name: "רמלה", lat: 31.928, lng: 34.867, eligible: 62000, voted: 31000, updatedAt: "15:35" },
+        { name: "לוד", lat: 31.951, lng: 34.895, eligible: 66000, voted: 33660, updatedAt: "15:35" },
+        { name: "באר יעקב", lat: 31.938, lng: 34.838, eligible: 23000, voted: 14200, updatedAt: "15:30" },
+        { name: "מודיעין-מכבים-רעות", lat: 31.890, lng: 35.010, eligible: 76000, voted: 44080, updatedAt: "15:45" },
+        { name: "שוהם", lat: 31.998, lng: 34.946, eligible: 16500, voted: 11500, updatedAt: "15:40" },
+        { name: "יבנה", lat: 31.878, lng: 34.739, eligible: 41000, voted: 24600, updatedAt: "15:35" },
+        { name: "גדרה", lat: 31.812, lng: 34.778, eligible: 23000, voted: 15400, updatedAt: "15:30" },
+        { name: "אשדוד", lat: 31.804, lng: 34.655, eligible: 198000, voted: 108900, updatedAt: "15:50" },
+        { name: "אשקלון", lat: 31.669, lng: 34.574, eligible: 122000, voted: 56120, updatedAt: "15:40" },
+        { name: "קריית גת", lat: 31.610, lng: 34.764, eligible: 47000, voted: 25850, updatedAt: "15:30" },
+        { name: "שדרות", lat: 31.524, lng: 34.596, eligible: 26000, voted: 14560, updatedAt: "15:35" },
+        { name: "נתיבות", lat: 31.420, lng: 34.587, eligible: 33000, voted: 22440, updatedAt: "15:45" },
+        { name: "אופקים", lat: 31.314, lng: 34.620, eligible: 28000, voted: 16240, updatedAt: "15:30" },
+        { name: "באר שבע", lat: 31.253, lng: 34.792, eligible: 178000, voted: 78320, updatedAt: "15:45" },
+        { name: "רהט", lat: 31.392, lng: 34.754, eligible: 42000, voted: 28980, updatedAt: "15:45" },
+        { name: "דימונה", lat: 31.069, lng: 35.034, eligible: 32000, voted: 17920, updatedAt: "15:30" },
+        { name: "ערד", lat: 31.261, lng: 35.214, eligible: 24000, voted: 13200, updatedAt: "15:25" },
+        { name: "ירוחם", lat: 30.988, lng: 34.919, eligible: 8500, voted: 5270, updatedAt: "15:30" },
+        { name: "מצפה רמון", lat: 30.612, lng: 34.801, eligible: 4200, voted: 2520, updatedAt: "15:15" },
+        { name: "אילת", lat: 29.558, lng: 34.952, eligible: 48000, voted: 19680, updatedAt: "15:30" },
 
         // ירושלים ויו"ש
-        { name: "ירושלים", lat: 31.768, lng: 35.214, eligible: 685000, voted: 274000 },
-        { name: "בית שמש", lat: 31.747, lng: 34.988, eligible: 92000, voted: 63480 },
-        { name: "מבשרת ציון", lat: 31.798, lng: 35.154, eligible: 20000, voted: 13200 },
-        { name: "מעלה אדומים", lat: 31.792, lng: 35.297, eligible: 30000, voted: 17700 },
-        { name: "גבעת זאב", lat: 31.861, lng: 35.168, eligible: 14500, voted: 9400 },
-        { name: "מודיעין עילית", lat: 31.932, lng: 35.042, eligible: 46000, voted: 39500 },
-        { name: "ביתר עילית", lat: 31.701, lng: 35.116, eligible: 34000, voted: 29200 },
-        { name: "אריאל", lat: 32.106, lng: 35.184, eligible: 16500, voted: 9400 },
-        { name: "קרני שומרון", lat: 32.164, lng: 35.097, eligible: 7000, voted: 4800 },
-        { name: "אפרת", lat: 31.655, lng: 35.152, eligible: 8200, voted: 5800 }
+        { name: "ירושלים", lat: 31.768, lng: 35.214, eligible: 685000, voted: 274000, updatedAt: "15:50" },
+        { name: "בית שמש", lat: 31.747, lng: 34.988, eligible: 92000, voted: 63480, updatedAt: "15:50" },
+        { name: "מבשרת ציון", lat: 31.798, lng: 35.154, eligible: 20000, voted: 13200, updatedAt: "15:35" },
+        { name: "מעלה אדומים", lat: 31.792, lng: 35.297, eligible: 30000, voted: 17700, updatedAt: "15:35" },
+        { name: "גבעת זאב", lat: 31.861, lng: 35.168, eligible: 14500, voted: 9400, updatedAt: "15:30" },
+        { name: "מודיעין עילית", lat: 31.932, lng: 35.042, eligible: 46000, voted: 39500, updatedAt: "15:55" },
+        { name: "ביתר עילית", lat: 31.701, lng: 35.116, eligible: 34000, voted: 29200, updatedAt: "15:55" },
+        { name: "אריאל", lat: 32.106, lng: 35.184, eligible: 16500, voted: 9400, updatedAt: "15:25" },
+        { name: "קרני שומרון", lat: 32.164, lng: 35.097, eligible: 7000, voted: 4800, updatedAt: "15:30" },
+        { name: "אפרת", lat: 31.655, lng: 35.152, eligible: 8200, voted: 5800, updatedAt: "15:35" }
     ];
+
+    // סינון להסרת תל אביב, רמת גן ורחובות
+    const excludedCities = ["תל אביב", "תל אביב - יפו", "תל אביב-יפו", "רמת גן", "רחובות"];
+    let authorities = rawAuthorities.filter(c => !excludedCities.includes(c.name));
 
     let map = null;
     let markersLayer = null;
@@ -582,8 +590,11 @@
 
             const diffText = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
             circle.bindPopup(`
-                <div style="min-width: 140px;">
-                    <h3 style="margin-bottom: 4px; font-size: 1rem;">${city.name}</h3>
+                <div style="min-width: 150px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <h3 style="margin:0; font-size: 1.05rem;">${city.name}</h3>
+                        <span style="font-size:0.7rem; color:#94a3b8; font-family:monospace;">${city.updatedAt}</span>
+                    </div>
                     <div>שיעור הצבעה: <b>${turnout.toFixed(1)}%</b></div>
                     <div style="color: ${diff >= 0 ? '#ef4444' : '#38bdf8'}; font-weight: bold; margin-top:2px;">
                         סטייה מהממוצע: ${diffText}
@@ -608,7 +619,6 @@
         const body = document.getElementById('tableBody');
         body.innerHTML = '';
 
-        // מיון הרשויות מהגבוה לנמוך לפי אחוז ההצבעה
         const sorted = [...authorities].sort((a,b) => (b.voted / b.eligible) - (a.voted / a.eligible));
         const filtered = sorted.filter(c => c.name.includes(query));
 
@@ -625,6 +635,7 @@
             row.innerHTML = `
                 <span class="row-city-name">${city.name}</span>
                 <div class="row-metrics">
+                    <span class="row-time">${city.updatedAt}</span>
                     <span class="row-turnout">${item.turnout.toFixed(1)}%</span>
                     <span class="row-diff ${diffClass}">${diffSign}${item.diff.toFixed(1)}%</span>
                 </div>
@@ -633,7 +644,6 @@
             row.onclick = () => {
                 map.flyTo([city.lat, city.lng], 12, { duration: 1.2 });
                 item.marker.openPopup();
-                // במסכים קטנים נסגור את הטבלה כדי לראות את המפה
                 if (window.innerWidth <= 650) {
                     document.getElementById('tablePanel').classList.add('collapsed');
                 }
@@ -658,10 +668,17 @@
         btn.innerText = 'מרענן...';
         btn.style.opacity = '0.7';
 
+        const now = new Date();
+        const currentTimeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+
         authorities.forEach(c => {
             const remaining = c.eligible - c.voted;
             if (remaining > 0) {
-                c.voted += Math.floor(Math.random() * (remaining * 0.04));
+                // עדכון אקראי לרשויות
+                if (Math.random() > 0.3) {
+                    c.voted += Math.floor(Math.random() * (remaining * 0.04));
+                    c.updatedAt = currentTimeStr;
+                }
             }
         });
 
