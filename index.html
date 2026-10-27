@@ -288,6 +288,19 @@
             color: #94a3b8;
         }
 
+        /* סגנון חלונית Tooltip במעבר עכבר */
+        .leaflet-tooltip {
+            background: rgba(15, 23, 42, 0.92) !important;
+            color: #f8fafc !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+            font-size: 0.8rem !important;
+            direction: rtl !important;
+            text-align: right !important;
+            padding: 6px 10px !important;
+        }
+
         .leaflet-popup-content-wrapper {
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(10px);
@@ -364,13 +377,10 @@
     </div>
 
 <script>
-    const excludedCities = ["תל אביב", "תל אביב - יפו", "תל אביב-יפו", "רמת גן", "רחובות"];
+    // סינון אוטומטי של יישובים שמוגדרים עם הערת hidden: true
+    const baseSettlements = (window.SETTLEMENTS_BASE || []).filter(c => !c.hidden);
 
-    // 1. קריאת התשתית הקבועה מתוך data.js
-    const baseSettlements = (window.SETTLEMENTS_BASE || []).filter(c => !excludedCities.includes(c.name.trim()));
-
-    // 2. שכבת נתוני הצבעה דינמית (Voter Turnout Layer)
-    // ביום הבחירות מודול זה מקבל את ה-JSON/API מוועדת הבחירות או מ-Google Sheets
+    // שכבת נתוני הצבעה דינמית
     let dynamicVotingData = new Map();
 
     let currentFilter = 'all';
@@ -399,7 +409,6 @@
         document.getElementById('lastUpdateDisplay').innerText = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
-    // פונקציית עדכון הצבעות (שואבת אונליין או מסימולציה)
     function fetchLiveVotingTurnout() {
         const now = new Date();
         const currentTimeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
@@ -407,7 +416,6 @@
         baseSettlements.forEach(city => {
             let existing = dynamicVotingData.get(city.name);
             if (!existing) {
-                // אתחול נתוני הצבעה ראשוניים
                 let rate = 0.54 + (Math.random() * 0.22 - 0.11);
                 if (city.name.includes("קריית יערים")) rate = 0.895;
                 if (city.name.includes("בני ברק") || city.name.includes("אלעד")) rate = 0.84;
@@ -417,7 +425,6 @@
                     updatedAt: "16:00"
                 });
             } else {
-                // עדכון קולות נוספים ברענון
                 const remaining = city.eligible - existing.voted;
                 if (remaining > 0 && Math.random() > 0.4) {
                     existing.voted += Math.floor(Math.random() * (remaining * 0.03));
@@ -484,7 +491,6 @@
 
         const currentList = getFilteredAuthorities();
 
-        // חישוב ממוצע הצבעה ארצי
         let totalEligible = 0;
         let totalVoted = 0;
 
@@ -525,19 +531,30 @@
             });
 
             const diffText = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
+            const popFormatted = (city.population || 0).toLocaleString('he-IL');
+
+            // תווית מידע צפה בעת מעבר עכבר (Hover) - כולל מספר תושבים
+            circle.bindTooltip(`
+                <strong>${city.name}</strong><br/>
+                תושבים: <strong>${popFormatted}</strong><br/>
+                שיעור הצבעה: <strong>${turnout.toFixed(1)}%</strong>
+            `, { direction: 'top', sticky: true });
+
+            // חלונית מידע מלאה בלחיצה
             circle.bindPopup(`
-                <div style="min-width: 155px;">
+                <div style="min-width: 165px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                         <h3 style="margin:0; font-size: 1.05rem;">${city.name}</h3>
                         <span style="font-size:0.7rem; color:#94a3b8; font-family:monospace;">${live.updatedAt}</span>
                     </div>
+                    <div>תושבים: <b>${popFormatted}</b></div>
                     <div>שיעור הצבעה: <b>${turnout.toFixed(1)}%</b></div>
                     <div style="color: ${diff >= 0 ? '#ef4444' : '#38bdf8'}; font-weight: bold; margin-top:2px;">
                         סטייה מהממוצע: ${diffText}
                     </div>
                     <div style="color: #94a3b8; font-size: 0.7rem; margin-top: 5px;">
                         בעלי זכות: ${city.eligible.toLocaleString('he-IL')}<br/>
-                        הצביעו: ${live.voted.toLocaleString('he-IL')}
+                        הצביעו בפועל: ${live.voted.toLocaleString('he-IL')}
                     </div>
                 </div>
             `);
@@ -586,9 +603,6 @@
             row.onclick = () => {
                 map.flyTo([city.lat, city.lng], 12, { duration: 1.2 });
                 item.marker.openPopup();
-                if (window.innerWidth <= 650) {
-                    document.getElementById('tablePanel').classList.add('collapsed');
-                }
             };
 
             body.appendChild(row);
