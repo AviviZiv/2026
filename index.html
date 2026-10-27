@@ -32,7 +32,7 @@
             background: #0b1120;
         }
 
-        /* מסך פתיחה עם כפתור שליפת נתונים ראשונית */
+        /* מסך פתיחה ראשוני */
         #welcomeOverlay {
             position: absolute;
             inset: 0;
@@ -191,6 +191,7 @@
             color: #ffffff;
         }
 
+        /* סרגל הסינון: הכל / מעל 5000 / ערים בלבד */
         .filter-group {
             display: flex;
             background: rgba(30, 41, 59, 0.85);
@@ -395,7 +396,7 @@
 </head>
 <body>
 
-    <!-- מסך פתיחה לכפתור שלוף נתונים ראשוני -->
+    <!-- מסך פתיחה -->
     <div id="welcomeOverlay">
         <div class="welcome-card">
             <div class="welcome-title">מדד הצבעה יחסי ברשויות</div>
@@ -432,9 +433,10 @@
                 <span style="font-size:0.75rem; color:#94a3b8;" id="filteredCount"></span>
             </div>
 
+            <!-- סרגל הסינון: מעל 5,000 בז"ב -->
             <div class="filter-group">
                 <button class="filter-btn active" data-filter="all">הכל</button>
-                <button class="filter-btn" data-filter="above1000">מעל 1,000 בז״ב</button>
+                <button class="filter-btn" data-filter="above5000">מעל 5,000 בז״ב</button>
                 <button class="filter-btn" data-filter="cities">ערים בלבד</button>
             </div>
 
@@ -462,6 +464,7 @@
     let markersLayer = null;
     let markersMap = new Map();
 
+    // הגדרת טיימר: רענון מחזורי כל 60 שניות
     const REFRESH_INTERVAL_SECONDS = 60;
     let secondsRemaining = REFRESH_INTERVAL_SECONDS;
     let countdownTimer = null;
@@ -562,9 +565,10 @@
         window.addEventListener('resize', () => map.invalidateSize());
     }
 
+    // סינון: הכל / מעל 5,000 בז"ב / ערים בלבד
     function getFilteredAuthorities() {
         return activeSettlements.filter(c => {
-            if (currentFilter === 'above1000') return c.eligible >= 1000;
+            if (currentFilter === 'above5000') return c.eligible >= 5000;
             if (currentFilter === 'cities') return c.isCity;
             return true;
         });
@@ -691,6 +695,7 @@
         });
     }
 
+    // פונקציית רענון (ידנית או אוטומטית)
     function triggerRefresh() {
         const btn = document.getElementById('refreshBtn');
         if (btn) {
@@ -707,11 +712,13 @@
                 btn.innerText = 'רענן ⟳';
                 btn.style.opacity = '1';
             }
+            // איפוס שעון הספירה לאחור ל-60 שניות
             secondsRemaining = REFRESH_INTERVAL_SECONDS;
             updateCountdownBadge();
         }, 250);
     }
 
+    // הפעלת לולאת הספירה לאחור
     function startAutoRefreshLoop() {
         updateCountdownBadge();
         if (countdownTimer) clearInterval(countdownTimer);
@@ -736,11 +743,12 @@
     });
 
     document.getElementById('searchInput').addEventListener('input', renderTable);
+    
+    // לחיצה ידנית על כפתור רענן
     document.getElementById('refreshBtn').addEventListener('click', triggerRefresh);
 
-    // פעולת כפתור שלוף נתונים ראשוני
+    // פעולת כפתור הפתיחה "שלוף נתוני אמת"
     document.getElementById('launchBtn').addEventListener('click', () => {
-        // טעינת הנתונים מתוך data.js
         const sourceData = window.SETTLEMENTS_BASE || [];
         activeSettlements = sourceData.filter(c => !c.hidden);
 
