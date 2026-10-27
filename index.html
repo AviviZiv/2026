@@ -362,8 +362,11 @@
     </div>
 
 <script>
-    // מאגר רשויות מקומיות (ללא תל אביב, רמת גן ורחובות) כולל שעת עדכון פרטנית לכל יישוב
+    // מאגר רשויות מקומיות מלא הכולל את קריית יערים (ללא תל אביב, רמת גן ורחובות)
     let rawAuthorities = [
+        // קריית יערים - בצמרת הטבלה
+        { name: "קריית יערים (טלז-סטון)", lat: 31.806, lng: 35.129, eligible: 3800, voted: 3400, updatedAt: "15:58" },
+
         // צפון עליון וגליל
         { name: "קריית שמונה", lat: 33.207, lng: 35.572, eligible: 19500, voted: 9800, updatedAt: "15:40" },
         { name: "מטולה", lat: 33.279, lng: 35.578, eligible: 1600, voted: 1100, updatedAt: "15:35" },
@@ -590,7 +593,7 @@
 
             const diffText = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
             circle.bindPopup(`
-                <div style="min-width: 150px;">
+                <div style="min-width: 155px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                         <h3 style="margin:0; font-size: 1.05rem;">${city.name}</h3>
                         <span style="font-size:0.7rem; color:#94a3b8; font-family:monospace;">${city.updatedAt}</span>
@@ -613,12 +616,12 @@
         renderTable();
     }
 
-    // מילוי טבלת היישובים
     function renderTable() {
         const query = document.getElementById('searchInput').value.trim();
         const body = document.getElementById('tableBody');
         body.innerHTML = '';
 
+        // מיון הרשויות מאחוז ההצבעה הגבוה ביותר לנמוך ביותר
         const sorted = [...authorities].sort((a,b) => (b.voted / b.eligible) - (a.voted / a.eligible));
         const filtered = sorted.filter(c => c.name.includes(query));
 
@@ -653,16 +656,13 @@
         });
     }
 
-    // חיפוש בטבלה
     document.getElementById('searchInput').addEventListener('input', renderTable);
 
-    // פתיחה וסגירה של טבלת היישובים
     document.getElementById('toggleTableBtn').addEventListener('click', () => {
         const panel = document.getElementById('tablePanel');
         panel.classList.toggle('collapsed');
     });
 
-    // כפתור רענן נתונים
     document.getElementById('refreshBtn').addEventListener('click', () => {
         const btn = document.getElementById('refreshBtn');
         btn.innerText = 'מרענן...';
@@ -674,9 +674,8 @@
         authorities.forEach(c => {
             const remaining = c.eligible - c.voted;
             if (remaining > 0) {
-                // עדכון אקראי לרשויות
-                if (Math.random() > 0.3) {
-                    c.voted += Math.floor(Math.random() * (remaining * 0.04));
+                if (Math.random() > 0.35) {
+                    c.voted += Math.floor(Math.random() * (remaining * 0.03));
                     c.updatedAt = currentTimeStr;
                 }
             }
