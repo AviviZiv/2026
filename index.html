@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
-    <!-- טעינה ישירה של קובץ הנתונים החיצוני (ללא בעיות נתיבים או fetch) -->
+    <!-- טעינת התשתית הקבועה מ-data.js -->
     <script src="data.js"></script>
 
     <style>
@@ -32,6 +32,7 @@
             background: #0b1120;
         }
 
+        /* סרגל עליון צף */
         .floating-top-bar {
             position: absolute;
             top: 14px;
@@ -86,22 +87,7 @@
             font-family: monospace;
         }
 
-        .btn-toggle-table {
-            position: absolute;
-            top: 14px;
-            left: 14px;
-            z-index: 1000;
-            background: rgba(15, 23, 42, 0.9);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            padding: 7px 14px;
-            border-radius: 20px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-        }
-
+        /* פאנל טבלת היישובים הקבוע */
         .table-panel {
             position: absolute;
             top: 70px;
@@ -119,13 +105,6 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-
-        .table-panel.collapsed {
-            transform: translateX(110%);
-            opacity: 0;
-            pointer-events: none;
         }
 
         .panel-header {
@@ -148,6 +127,7 @@
             color: #ffffff;
         }
 
+        /* סרגל הסינון: הכל / מעל 1000 / ערים בלבד */
         .filter-group {
             display: flex;
             background: rgba(30, 41, 59, 0.85);
@@ -328,11 +308,6 @@
                 gap: 8px;
                 padding: 6px 12px;
             }
-            .btn-toggle-table {
-                top: 8px;
-                left: 8px;
-                padding: 6px 10px;
-            }
             .table-panel {
                 top: 55px;
                 right: 8px;
@@ -346,8 +321,6 @@
 <body>
 
     <div id="map"></div>
-
-    <button class="btn-toggle-table" id="toggleTableBtn">📋 טבלת יישובים</button>
 
     <div class="floating-top-bar">
         <div class="stat-badge">
@@ -393,8 +366,13 @@
 <script>
     const excludedCities = ["תל אביב", "תל אביב - יפו", "תל אביב-יפו", "רמת גן", "רחובות"];
 
-    // קריאת הנתונים מהקובץ data.js הנטען מראש
-    let allAuthorities = (window.RAW_AUTHORITIES_DATA || []).filter(c => !excludedCities.includes(c.name.trim()));
+    // 1. קריאת התשתית הקבועה מתוך data.js
+    const baseSettlements = (window.SETTLEMENTS_BASE || []).filter(c => !excludedCities.includes(c.name.trim()));
+
+    // 2. שכבת נתוני הצבעה דינמית (Voter Turnout Layer)
+    // ביום הבחירות מודול זה מקבל את ה-JSON/API מוועדת הבחירות או מ-Google Sheets
+    let dynamicVotingData = new Map();
+
     let currentFilter = 'all';
     let map = null;
     let markersLayer = null;
@@ -419,6 +397,34 @@
     function updateTimestamp() {
         const now = new Date();
         document.getElementById('lastUpdateDisplay').innerText = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // פונקציית עדכון הצבעות (שואבת אונליין או מסימולציה)
+    function fetchLiveVotingTurnout() {
+        const now = new Date();
+        const currentTimeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+
+        baseSettlements.forEach(city => {
+            let existing = dynamicVotingData.get(city.name);
+            if (!existing) {
+                // אתחול נתוני הצבעה ראשוניים
+                let rate = 0.54 + (Math.random() * 0.22 - 0.11);
+                if (city.name.includes("קריית יערים")) rate = 0.895;
+                if (city.name.includes("בני ברק") || city.name.includes("אלעד")) rate = 0.84;
+                
+                dynamicVotingData.set(city.name, {
+                    voted: Math.round(city.eligible * rate),
+                    updatedAt: "16:00"
+                });
+            } else {
+                // עדכון קולות נוספים ברענון
+                const remaining = city.eligible - existing.voted;
+                if (remaining > 0 && Math.random() > 0.4) {
+                    existing.voted += Math.floor(Math.random() * (remaining * 0.03));
+                    existing.updatedAt = currentTimeStr;
+                }
+            }
+        });
     }
 
     function initMap() {
@@ -457,6 +463,7 @@
         };
         legend.addTo(map);
 
+        fetchLiveVotingTurnout();
         renderData();
         updateTimestamp();
 
@@ -465,7 +472,7 @@
     }
 
     function getFilteredAuthorities() {
-        return allAuthorities.filter(c => {
+        return baseSettlements.filter(c => {
             if (currentFilter === 'above1000') return c.eligible >= 1000;
             if (currentFilter === 'cities') return c.isCity;
             return true;
@@ -477,8 +484,18 @@
 
         const currentList = getFilteredAuthorities();
 
-        const totalEligible = currentList.reduce((acc, c) => acc + c.eligible, 0);
-        const totalVoted = currentList.reduce((acc, c) => acc + c.voted, 0);
+        // חישוב ממוצע הצבעה ארצי
+        let totalEligible = 0;
+        let totalVoted = 0;
+
+        currentList.forEach(c => {
+            const live = dynamicVotingData.get(c.name);
+            if (live) {
+                totalEligible += c.eligible;
+                totalVoted += live.voted;
+            }
+        });
+
         const nationalAvg = totalEligible > 0 ? (totalVoted / totalEligible) * 100 : 0;
 
         document.getElementById('disp-avg').innerText = nationalAvg.toFixed(1) + '%';
@@ -490,7 +507,10 @@
         markersMap.clear();
 
         currentList.forEach(city => {
-            const turnout = (city.voted / city.eligible) * 100;
+            const live = dynamicVotingData.get(city.name);
+            if (!live) return;
+
+            const turnout = (live.voted / city.eligible) * 100;
             const diff = turnout - nationalAvg;
             const color = getColorByDiff(diff);
             const radius = Math.max(5, Math.min(18, Math.sqrt(city.eligible) / 32));
@@ -509,7 +529,7 @@
                 <div style="min-width: 155px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                         <h3 style="margin:0; font-size: 1.05rem;">${city.name}</h3>
-                        <span style="font-size:0.7rem; color:#94a3b8; font-family:monospace;">${city.updatedAt}</span>
+                        <span style="font-size:0.7rem; color:#94a3b8; font-family:monospace;">${live.updatedAt}</span>
                     </div>
                     <div>שיעור הצבעה: <b>${turnout.toFixed(1)}%</b></div>
                     <div style="color: ${diff >= 0 ? '#ef4444' : '#38bdf8'}; font-weight: bold; margin-top:2px;">
@@ -517,13 +537,13 @@
                     </div>
                     <div style="color: #94a3b8; font-size: 0.7rem; margin-top: 5px;">
                         בעלי זכות: ${city.eligible.toLocaleString('he-IL')}<br/>
-                        הצביעו: ${city.voted.toLocaleString('he-IL')}
+                        הצביעו: ${live.voted.toLocaleString('he-IL')}
                     </div>
                 </div>
             `);
 
             markersLayer.addLayer(circle);
-            markersMap.set(city.name, { marker: circle, data: city, turnout, diff, color });
+            markersMap.set(city.name, { marker: circle, data: city, live, turnout, diff, color });
         });
 
         renderTable();
@@ -535,9 +555,13 @@
         body.innerHTML = '';
 
         const currentList = getFilteredAuthorities();
-        const sorted = [...currentList].sort((a,b) => (b.voted / b.eligible) - (a.voted / a.eligible));
-        const filtered = sorted.filter(c => c.name.includes(query));
+        const sorted = [...currentList].sort((a,b) => {
+            const voteA = dynamicVotingData.get(a.name)?.voted || 0;
+            const voteB = dynamicVotingData.get(b.name)?.voted || 0;
+            return (voteB / b.eligible) - (voteA / a.eligible);
+        });
 
+        const filtered = sorted.filter(c => c.name.includes(query));
         document.getElementById('filteredCount').innerText = `${filtered.length} רשויות`;
 
         filtered.forEach(city => {
@@ -553,7 +577,7 @@
             row.innerHTML = `
                 <span class="row-city-name">${city.name}</span>
                 <div class="row-metrics">
-                    <span class="row-time">${city.updatedAt}</span>
+                    <span class="row-time">${item.live.updatedAt}</span>
                     <span class="row-turnout">${item.turnout.toFixed(1)}%</span>
                     <span class="row-diff ${diffClass}">${diffSign}${item.diff.toFixed(1)}%</span>
                 </div>
@@ -571,6 +595,7 @@
         });
     }
 
+    // סינון: הכל / מעל 1000 / ערים
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -582,26 +607,13 @@
 
     document.getElementById('searchInput').addEventListener('input', renderTable);
 
-    document.getElementById('toggleTableBtn').addEventListener('click', () => {
-        const panel = document.getElementById('tablePanel');
-        panel.classList.toggle('collapsed');
-    });
-
+    // כפתור רענן
     document.getElementById('refreshBtn').addEventListener('click', () => {
         const btn = document.getElementById('refreshBtn');
         btn.innerText = 'מרענן...';
         btn.style.opacity = '0.7';
 
-        const now = new Date();
-        const currentTimeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-
-        allAuthorities.forEach(c => {
-            const remaining = c.eligible - c.voted;
-            if (remaining > 0 && Math.random() > 0.4) {
-                c.voted += Math.floor(Math.random() * (remaining * 0.03));
-                c.updatedAt = currentTimeStr;
-            }
-        });
+        fetchLiveVotingTurnout();
 
         setTimeout(() => {
             renderData();
